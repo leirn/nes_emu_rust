@@ -1,6 +1,4 @@
 
-use std::{thread, time::Duration};
-
 pub struct NesEmulator {
     is_nmi:bool,
     is_irq:bool,
@@ -25,7 +23,10 @@ impl NesEmulator {
             for event in event_pump.poll_iter() {
                 use sdl2::event::Event;
                 match event {
-                    Event::KeyDown {..} => { continuer = false},
+                    Event::Quit {..} |
+                    Event::KeyDown {
+                        keycode: Some(sdl2::keyboard::Keycode::Q), ..
+                    } => { continuer = false},
                     _ => ()
                 }
             }
