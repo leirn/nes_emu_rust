@@ -22,6 +22,8 @@ pub struct Cartridge {
     trainer:Vec<u8>,
 }
 
+unsafe impl Sync for Cartridge {}
+
 impl Cartridge {
     pub fn new() -> Cartridge {
         Cartridge {
