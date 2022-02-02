@@ -1,4 +1,3 @@
-use sdl2;
 mod screen;
 
 pub struct Ppu {
@@ -17,6 +16,13 @@ impl Ppu {
 
     pub fn start(&mut self) {
         self.screen.start();
+
+        for i in 1..25 {
+            for j in 1..25 {
+                self.screen.update_pixel(110 + i, 105 + j, 5);
+            }
+        }
+        self.screen.present();
     }
 
     pub fn next(&self) {

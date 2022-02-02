@@ -1,4 +1,4 @@
-use crate::components::{PPU};
+use crate::components::{CPU, PPU};
 
 pub struct NesEmulator {
     is_nmi:bool,
@@ -22,10 +22,29 @@ impl NesEmulator {
 
     pub fn start(&self) {
         PPU.lock().unwrap().start();
+        CPU.lock().unwrap().start(None);
+        PPU.lock().unwrap().next();
+        PPU.lock().unwrap().next();
+        PPU.lock().unwrap().next();
 
         let mut continuer:bool = true;
 
         while continuer {
+            if !self.pause {
+                if self.is_nmi {
+                    CPU.lock().unwrap().nmi();
+                }
+                if self.is_irq {
+                    CPU.lock().unwrap().irq();
+                }
+
+
+                CPU.lock().unwrap().next();
+                PPU.lock().unwrap().next();
+                PPU.lock().unwrap().next();
+                PPU.lock().unwrap().next();
+            }
+
             let mut event_pump = self.sdl_context.event_pump().unwrap();
             for event in event_pump.poll_iter() {
                 use sdl2::event::Event;

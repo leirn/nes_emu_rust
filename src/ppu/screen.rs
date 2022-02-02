@@ -2,6 +2,7 @@
 //!
 
 use crate::components;
+use sdl2::pixels::Color;
 
 pub struct Screen {
     scale: u32,
@@ -47,7 +48,7 @@ impl Screen {
         self.canvas.clear();
 
         // change the color of our drawing with a gold-color ...
-        self.canvas.set_draw_color(PALETTE[1]);
+        self.canvas.set_draw_color(PALETTE[36]);
         // A draw a rectangle which almost fills our window with it !
         match self.canvas.fill_rect(sdl2::rect::Rect::new(10, 10, 256 * 3 - 20, 240 * 3 - 20)) {
             Err(e) => println!("{:?}", e),
@@ -82,4 +83,9 @@ impl Screen {
     }
 }
 
-const PALETTE: [sdl2::pixels::Color; 2] = [sdl2::pixels::Color::RGB(0, 0, 155), sdl2::pixels::Color::RGB(0, 155, 155), ];
+const PALETTE: [Color; 64] = [
+    Color::RGB(84,  84,  84), 	Color::RGB(0,  30, 116),	Color::RGB(8, 16, 144),	    Color::RGB(48, 0, 136), 	Color::RGB(68, 0, 100),  	Color::RGB(92, 0,  48),   	Color::RGB(84, 4, 0),   	Color::RGB(60, 24, 0),   	Color::RGB(32, 42, 0), 	    Color::RGB(8, 58, 0),    	Color::RGB(0, 64, 0),    	Color::RGB(0, 60, 0),    	Color::RGB(0, 50, 60),    	Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),
+    Color::RGB(152, 150, 152),  Color::RGB(8,  76, 196),   	Color::RGB(48, 50, 236),   	Color::RGB(92, 30, 228),  	Color::RGB(136, 20, 176), 	Color::RGB(160, 20, 100),  	Color::RGB(152, 34, 32),  	Color::RGB(120, 60, 0),   	Color::RGB(84, 90, 0),   	Color::RGB(40, 114, 0),    	Color::RGB(8, 124, 0),    	Color::RGB(0, 118, 40),    	Color::RGB(0, 102, 120),    Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),
+    Color::RGB(236, 238, 236),  Color::RGB(76, 154, 236),  	Color::RGB(120, 124, 236),  Color::RGB(176, 98, 236),  	Color::RGB(228, 84, 236), 	Color::RGB(236, 88, 180),  	Color::RGB(236, 106, 100),  Color::RGB(212, 136, 32),  	Color::RGB(160, 170, 0),  	Color::RGB(116, 196, 0),   	Color::RGB(76, 208, 32),   	Color::RGB(56, 204, 108),   Color::RGB(56, 180, 204),   Color::RGB(60,  60,  60),	Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),
+    Color::RGB(236, 238, 236),  Color::RGB(168, 204, 236),  Color::RGB(188, 188, 236),  Color::RGB(212, 178, 236),  Color::RGB(236, 174, 236),	Color::RGB(236, 174, 212),  Color::RGB(236, 180, 176),  Color::RGB(228, 196, 144),  Color::RGB(204, 210, 120),  Color::RGB(180, 222, 120),  Color::RGB(168, 226, 144),  Color::RGB(152, 226, 180),  Color::RGB(160, 214, 228),  Color::RGB(160, 162, 160),	Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),
+];

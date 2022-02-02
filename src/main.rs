@@ -4,6 +4,7 @@ mod cartridge;
 mod apu;
 mod cpu;
 mod ppu;
+mod memory;
 mod nes_emulator;
 
 use components::{CARTRIDGE, EMULATOR};
