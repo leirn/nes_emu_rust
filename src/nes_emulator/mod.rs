@@ -21,7 +21,7 @@ impl NesEmulator {
     }
 
     pub fn start(&self) {
-        PPU.start();
+        PPU.lock().unwrap().start();
 
         let mut continuer:bool = true;
 

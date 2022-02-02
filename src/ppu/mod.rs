@@ -6,6 +6,7 @@ pub struct Ppu {
 }
 
 unsafe impl Sync for Ppu {}
+unsafe impl Send for Ppu {}
 
 impl Ppu {
     pub fn new() -> Ppu {
@@ -14,7 +15,7 @@ impl Ppu {
         }
     }
 
-    pub fn start(&self) {
+    pub fn start(&mut self) {
         self.screen.start();
     }
 
