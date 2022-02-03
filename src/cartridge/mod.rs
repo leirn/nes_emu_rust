@@ -103,4 +103,20 @@ impl Cartridge {
 
         buf_reader
     }
+
+    pub fn read_ram(&self, address: u16) -> u8 {
+        0
+    }
+
+    pub fn read_prg_rom(&self, address: u16) -> u8 {
+        0
+    }
+
+    pub fn write_ram(&self, address: u16, value: u8) {
+        
+    }
+
+    pub fn write_prg_rom(&self, address: u16, value: u8) {
+        
+    }
 }

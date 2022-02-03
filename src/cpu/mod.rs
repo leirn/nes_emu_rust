@@ -164,4 +164,8 @@ impl Cpu {
     fn push(&mut self, value:u8) {
 
     }
+
+    fn pull(&mut self) -> u8 {
+        0
+    }
 }
