@@ -88,6 +88,17 @@ impl Cpu {
         // BIT
         self.instructions.insert(0x24, Cpu::fn_0x24);
         self.instructions.insert(0x2c, Cpu::fn_0x2c);
+        // BRANCHES
+        self.instructions.insert(0x10, Cpu::fn_0x10);
+        self.instructions.insert(0x30, Cpu::fn_0x30);
+        self.instructions.insert(0x50, Cpu::fn_0x50);
+        self.instructions.insert(0x70, Cpu::fn_0x70);
+        self.instructions.insert(0x90, Cpu::fn_0x90);
+        self.instructions.insert(0xb0, Cpu::fn_0xb0);
+        self.instructions.insert(0xd0, Cpu::fn_0xd0);
+        self.instructions.insert(0xf0, Cpu::fn_0xf0);
+        // BRK
+        self.instructions.insert(0x00, Cpu::fn_0x00);
         
     }
     fn dummy(&mut self) -> (u16, u32) {
@@ -608,5 +619,124 @@ impl Cpu {
         self.set_negative(tocomp);
         self.overflow = ((tocomp >> 6) & 1) != 0;
         (3, 4)
+    }
+
+    /// Function call for BPL #$xx. Relative
+    fn fn_0x10(&mut self) -> (u16, u32) {
+        let old_pc = self.program_counter + 2;
+        let signed: i8 = self.get_immediate() as i8;
+        if ! self.negative {
+            self.program_counter = self.program_counter.wrapping_add(signed as u16);
+            self.additionnal_cycles += 1;
+            if self.program_counter & 0xff00 != old_pc & 0xff00 {
+                self.additionnal_cycles += 1;
+            }
+        }
+        (2, 2)
+    }
+
+    /// Function call for BMI #$xx. Relative
+    fn fn_0x30(&mut self) -> (u16, u32) {
+        let old_pc = self.program_counter + 2;
+        let signed: i8 = self.get_immediate() as i8;
+        if self.negative {
+            self.program_counter = self.program_counter.wrapping_add(signed as u16);
+            self.additionnal_cycles += 1;
+            if self.program_counter & 0xff00 != old_pc & 0xff00 {
+                self.additionnal_cycles += 1
+            }
+        }
+        (2, 2)
+    }
+
+    /// Function call for BVC #$xx. Relative
+    fn fn_0x50(&mut self) -> (u16, u32) {
+        let signed: i8 = self.get_immediate() as i8;
+        if ! self.overflow {
+            self.program_counter = self.program_counter.wrapping_add(signed as u16);
+            self.additionnal_cycles += 1;
+        }
+        (2, 2)
+    }
+
+    /// Function call for BVS #$xx. Relative
+    fn fn_0x70(&mut self) -> (u16, u32) {
+        let old_pc = self.program_counter + 2;
+        let signed: i8 = self.get_immediate() as i8;
+        if self.overflow {
+            self.program_counter = self.program_counter.wrapping_add(signed as u16);
+            self.additionnal_cycles += 1;
+            if self.program_counter & 0xff00 != old_pc & 0xff00 {
+                self.additionnal_cycles += 1
+            }
+        }
+        (2, 2)
+    }
+
+    /// Function call for BCC #$xx. Relative/// 
+    fn fn_0x90(&mut self) -> (u16, u32) {
+        let old_pc = self.program_counter + 2;
+        let signed: i8 = self.get_immediate() as i8;
+        if !self.carry { 
+            self.program_counter = self.program_counter.wrapping_add(signed as u16);
+            self.additionnal_cycles += 1;
+            if self.program_counter & 0xff00 != old_pc & 0xff00{
+                self.additionnal_cycles += 1
+            }
+        }
+        (2, 2)
+    }
+
+    /// Function call for BCS #$xx. Relative
+    fn fn_0xb0(&mut self) -> (u16, u32) {
+        let old_pc = self.program_counter + 2;
+        let signed: i8 = self.get_immediate() as i8;
+        if self.carry {
+            self.program_counter = self.program_counter.wrapping_add(signed as u16);
+            self.additionnal_cycles += 1;
+            if self.program_counter & 0xff00 != old_pc & 0xff00 {
+                self.additionnal_cycles += 1
+            }
+        }
+        (2, 2)
+    }
+
+    /// Function call for BNE #$xx. Relative
+    fn fn_0xd0(&mut self) -> (u16, u32) {
+        let old_pc = self.program_counter + 2;
+        let signed: i8 = self.get_immediate() as i8;
+        if !self.zero {
+            self.program_counter = self.program_counter.wrapping_add(signed as u16);
+            self.additionnal_cycles += 1;
+            if self.program_counter & 0xff00 != old_pc & 0xff00 {
+                self.additionnal_cycles = 1;
+            }
+        }
+        (2, 2)
+    }
+
+    /// Function call for BEQ #$xx. Relative
+    fn fn_0xf0(&mut self) -> (u16, u32) {
+        let old_pc = self.program_counter + 2;
+        let signed: i8 = self.get_immediate() as i8;
+        if self.zero {
+            self.program_counter = self.program_counter.wrapping_add(signed as u16);
+            self.additionnal_cycles += 1;
+            if (self.program_counter + 2) & 0xff00 != old_pc & 0xff00 { // PC+2 to take into account current instruction size
+                self.additionnal_cycles += 1;
+            }
+        }
+        (2, 2)
+    }
+
+    /// Function call for BRK. Implied
+    ///TODO ! Should set Break flag to 1
+    fn fn_0x00(&mut self) -> (u16, u32) {
+        self.program_counter += 1;
+        self.push((self.program_counter >> 8) as u8);
+        self.push((self.program_counter & 0xff) as u8);
+        self.push(self.get_status_register());
+        self.program_counter = MEMORY.lock().unwrap().read_rom_16(0xfffe);
+        (0, 7)
     }
 }
