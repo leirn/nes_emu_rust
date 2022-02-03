@@ -80,6 +80,14 @@ impl Cpu {
         self.instructions.insert(0x35, Cpu::fn_0x35);
         self.instructions.insert(0x39, Cpu::fn_0x39);
         self.instructions.insert(0x3d, Cpu::fn_0x3d);
+        // ASL
+        self.instructions.insert(0x06, Cpu::fn_0x06);
+        self.instructions.insert(0x0e, Cpu::fn_0x0e);
+        self.instructions.insert(0x16, Cpu::fn_0x16);
+        self.instructions.insert(0x1e, Cpu::fn_0x1e);
+        // BIT
+        self.instructions.insert(0x24, Cpu::fn_0x24);
+        self.instructions.insert(0x2c, Cpu::fn_0x2c);
         
     }
     fn dummy(&mut self) -> (u16, u32) {
@@ -358,12 +366,7 @@ impl Cpu {
 
     ///  Set Negative Flag according to value
     fn set_negative(&mut self, value: u8) {
-        if value < 0 {
-            self.negative = false;
-        }
-        else {
-            self.negative = (value >> 7) != 0;
-        }
+        self.negative = (value >> 7) != 0;
     }
 
     ///  Set Zero Flag according to value
@@ -530,10 +533,80 @@ impl Cpu {
         (2, 5)
     }
 
-    /// Function call for AND ($xx), Y. Indirect, Y/// 
+    /// Function call for AND ($xx), Y. Indirect, Y
     fn fn_0x31_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
         self.accumulator &= self.get_indirect_y_value(Some(false));
         self.set_flags_nz(self.accumulator);
         (2, 5)
+    }
+
+    /// Function call for ASL $xx. Zero Page
+    fn fn_0x06(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_value();
+        self.carry = (value >> 7) != 0;
+        let value = (value << 1) & 0b11111111;
+        self.set_zero_page(value);
+        self.set_flags_nz(value);
+        (2, 5)
+    }
+
+    /// Function call for ASL $xx, X. Zero Page, X
+    fn fn_0x16(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_x_value();
+        self.carry = (value >> 7) != 0;
+        let value = (value << 1) & 0b11111111;
+        self.set_zero_page_x(value);
+        self.set_flags_nz(value);
+        (2, 6)
+    }
+
+    /// Function call for ASL $xxxx. Absolute/// 
+    fn fn_0x0e(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_value();
+        self.carry = (value >> 7) != 0;
+        let value = (value << 1) & 0b11111111;
+        self.set_absolute(value);
+        self.set_flags_nz(value);
+        (3, 6)
+    }
+
+    /// Function call for ASL $xxxx, X. Absolute, X/// 
+    fn fn_0x1e(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_x_value(Some(true));
+        self.carry = (value >> 7) != 0;
+        let value = (value << 1) & 0b11111111;
+        self.set_absolute_x(value, Some(true));
+        self.set_flags_nz(value);
+        (3, 7)
+    }
+
+    /// Function call for ASL $xxxx, X. Absolute, X/// 
+    fn fn_0x1e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_x_value(Some(true));
+        self.carry = (value >> 7) != 0;
+        let value = (value << 1) & 0b11111111;
+        self.set_absolute_x(value, Some(true));
+        self.set_flags_nz(value);
+        (3, 7)
+    }
+
+    /// Function call for BIT $xx. Zero Page/// 
+    fn fn_0x24(&mut self) -> (u16, u32) {
+        let tocomp = self.get_zero_page_value();
+        let value = tocomp & self.accumulator;
+        self.set_zero(value);
+        self.set_negative(tocomp);
+        self.overflow = ((tocomp >> 6) & 1) != 0;
+        (2, 3)
+    } 
+
+    /// Function call for BIT $xxxx. Absolute/// 
+    fn fn_0x2c(&mut self) -> (u16, u32) {
+        let tocomp = self.get_absolute_value();
+        let value = tocomp & self.accumulator;
+        self.set_zero(value);
+        self.set_negative(tocomp);
+        self.overflow = ((tocomp >> 6) & 1) != 0;
+        (3, 4)
     }
 }

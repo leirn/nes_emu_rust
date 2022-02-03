@@ -6,7 +6,7 @@ use sdl2::pixels::Color;
 
 pub struct Screen {
     scale: u32,
-    video_subsystem: sdl2::VideoSubsystem,
+    //video_subsystem: sdl2::VideoSubsystem,
     //window: sdl2::video::Window,
     canvas: sdl2::render::Canvas<sdl2::video::Window>,
 }
@@ -27,7 +27,7 @@ impl Screen {
 
         Screen {
             scale: _scale,
-            video_subsystem: _video_subsystem,
+            //video_subsystem: _video_subsystem,
             //window: _window,
             canvas: _canvas,
         }
