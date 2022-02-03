@@ -71,6 +71,15 @@ impl Cpu {
         self.instructions.insert(0x75, Cpu::fn_0x75);
         self.instructions.insert(0x79, Cpu::fn_0x79);
         self.instructions.insert(0x7d, Cpu::fn_0x7d);
+        // AND
+        self.instructions.insert(0x21, Cpu::fn_0x21);
+        self.instructions.insert(0x25, Cpu::fn_0x25);
+        self.instructions.insert(0x29, Cpu::fn_0x29);
+        self.instructions.insert(0x2d, Cpu::fn_0x2d);
+        self.instructions.insert(0x31, Cpu::fn_0x31);
+        self.instructions.insert(0x35, Cpu::fn_0x35);
+        self.instructions.insert(0x39, Cpu::fn_0x39);
+        self.instructions.insert(0x3d, Cpu::fn_0x3d);
         
     }
     fn dummy(&mut self) -> (u16, u32) {
@@ -146,14 +155,14 @@ impl Cpu {
     /// 
     /// Bit 5 is always set to 1
     fn get_status_register(&self) -> u8 {
-        return    ((self.negative as u8) << 7) 
+           ((self.negative as u8) << 7) 
                 | ((self.overflow as u8) << 6) 
                 | (1 << 5) 
                 | ((self.break_flag as u8) << 4) 
                 | ((self.decimal as u8) << 3) 
                 | ((self.interrupt as u8) << 2) 
                 | ((self.zero as u8) << 1) 
-                | (self.carry as u8);
+                | (self.carry as u8)
     }
 
     /// Set the P register which contains the flag status.
@@ -447,6 +456,84 @@ impl Cpu {
     fn fn_0x71_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
         let indirect = self.get_indirect_y_value(Some(false));
         self.adc(indirect);
+        (2, 5)
+    }
+
+    /// Function call for AND #$xx. Immediate
+    fn fn_0x29(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_immediate();
+        self.set_flags_nz(self.accumulator);
+        (2, 2)
+    }
+
+    /// Function call for AND $xx. Zero Page
+    fn fn_0x25(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_zero_page_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 3)
+    }
+
+    /// Function call for AND $xx, X. Zero Page, X
+    fn fn_0x35(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_zero_page_x_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 4)
+    }
+
+    /// Function call for AND $xxxx. Absolute
+    fn fn_0x2d(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_absolute_value();
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for AND $xxxx, X. Absolute, X
+    fn fn_0x3d(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_absolute_x_value(Some(true));
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for AND $xxxx, X. Absolute, X
+    fn fn_0x3d_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_absolute_x_value(Some(false));
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for AND $xxxx, Y. Absolute, Y
+    fn fn_0x39(&mut self) -> (u16, u32) {
+        
+        self.accumulator &= self.get_absolute_y_value(Some(true));
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for AND $xxxx, Y. Absolute, Y
+    fn fn_0x39_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_absolute_y_value(Some(false));
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for AND ($xx, X). Indirect, X
+    fn fn_0x21(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_indirect_x_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 6)
+    }
+
+    /// Function call for AND ($xx), Y. Indirect, Y/// 
+    fn fn_0x31(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_indirect_y_value(Some(true));
+        self.set_flags_nz(self.accumulator);
+        (2, 5)
+    }
+
+    /// Function call for AND ($xx), Y. Indirect, Y/// 
+    fn fn_0x31_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        self.accumulator &= self.get_indirect_y_value(Some(false));
+        self.set_flags_nz(self.accumulator);
         (2, 5)
     }
 }
