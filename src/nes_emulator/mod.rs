@@ -6,7 +6,8 @@ pub struct NesEmulator {
     is_irq: bool,
     pause: bool,
     is_frame_updated: bool,
-    pub sdl_context: sdl2::Sdl, 
+    pub sdl_context: sdl2::Sdl,
+    clock: clock::Clock,
 }
 
 unsafe impl Sync for NesEmulator {}
@@ -21,6 +22,7 @@ impl NesEmulator {
             pause: false,
             is_frame_updated: false,
             sdl_context: _sdl_context,
+            clock: clock::Clock::new(),
         }
     }
 
