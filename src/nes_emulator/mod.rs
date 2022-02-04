@@ -32,9 +32,11 @@ impl NesEmulator {
         while continuer {
             if !self.pause {
                 if self.is_nmi {
+                    self.is_nmi = false;
                     CPU.lock().unwrap().nmi();
                 }
-                if self.is_irq {
+                if self.is_irq && CPU.lock().unwrap().getInterruptFlag() {
+                    self.is_irq = false;
                     CPU.lock().unwrap().irq();
                 }
 
@@ -60,7 +62,7 @@ impl NesEmulator {
     }
 
     pub fn toggle_pause(&mut self) {
-        self.pause = self.pause;
+        self.pause = !self.pause;
     }
 
     pub fn raise_nmi(&mut self) {
