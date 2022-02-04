@@ -1,3 +1,4 @@
+//! Cartridge object
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
@@ -25,6 +26,7 @@ pub struct Cartridge {
 unsafe impl Sync for Cartridge {}
 
 impl Cartridge {
+    /// Instantiate a new cartridge
     pub fn new() -> Cartridge {
         Cartridge {
             file_name: String::new(),
@@ -47,6 +49,7 @@ impl Cartridge {
         }
     }
 
+    /// Parse a rom
     pub fn parse_rom(&mut self, file_name: String) {
         let file = File::open(file_name).unwrap();
         let mut buf_reader = BufReader::new(file);
@@ -68,6 +71,7 @@ impl Cartridge {
         println!("{}", self.file_name)
     }
 
+    /// Parse ROM header
     fn parse_header(&mut self, mut buf_reader: BufReader<File>) -> BufReader<File> {
         buf_reader.by_ref().take(4).read_to_end(&mut self.magic).expect("File too short, check you file for error");
 
@@ -104,19 +108,33 @@ impl Cartridge {
         buf_reader
     }
 
+    /// Read cartridge RAM
     pub fn read_ram(&self, address: u16) -> u8 {
         0
     }
 
+    /// Read cartridge PRG ROM
     pub fn read_prg_rom(&self, address: u16) -> u8 {
         0
     }
 
+    /// Read cartridge CHR ROM
+    pub fn read_chr_rom(&self, address: u16) -> u8 {
+        0
+    }
+
+    /// Write cartridge RAM
     pub fn write_ram(&self, address: u16, value: u8) {
         
     }
 
+    /// Write cartridge PRG ROM
     pub fn write_prg_rom(&self, address: u16, value: u8) {
+        
+    }
+
+    /// Write cartridge CHR ROM
+    pub fn write_chr_rom(&self, address: u16, value: u8) {
         
     }
 }
