@@ -1,3 +1,4 @@
+//! Global access for NES components
 extern crate lazy_static;
 use crate::apu;
 use crate::cpu;
