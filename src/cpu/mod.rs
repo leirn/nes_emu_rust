@@ -1,3 +1,4 @@
+//! CPU component
 use crate::components::{MEMORY};
 use std::collections::HashMap;
 
