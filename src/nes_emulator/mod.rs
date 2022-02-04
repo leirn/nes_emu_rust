@@ -5,7 +5,7 @@ pub struct NesEmulator {
     is_nmi: bool,
     is_irq: bool,
     pause: bool,
-    is_frame_updated: bool;
+    is_frame_updated: bool,
     pub sdl_context: sdl2::Sdl, 
 }
 
