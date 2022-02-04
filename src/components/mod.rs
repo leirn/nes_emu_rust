@@ -13,5 +13,5 @@ lazy_static::lazy_static! {
     pub static ref PPU: std::sync::Mutex<ppu::Ppu> = std::sync::Mutex::new(ppu::Ppu::new());
     pub static ref MEMORY: std::sync::Mutex<memory::Memory> = std::sync::Mutex::new(memory::Memory::new());
     pub static ref CARTRIDGE: std::sync::Mutex<cartridge::Cartridge> = std::sync::Mutex::new(cartridge::Cartridge::new());
-    pub static ref EMULATOR: nes_emulator::NesEmulator = nes_emulator::NesEmulator::new();
+    pub static ref EMULATOR: std::sync::Mutex<nes_emulator::NesEmulator> = std::sync::Mutex::new(nes_emulator::NesEmulator::new());
 }

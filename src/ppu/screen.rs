@@ -10,12 +10,11 @@ pub struct Screen {
     canvas: sdl2::render::Canvas<sdl2::video::Window>,
 }
 
-
 impl Screen {
     /// Instantiate Screen component
     pub fn new() -> Screen {
         let _scale = 3;
-        let _video_subsystem = components::EMULATOR.sdl_context.video().unwrap();
+        let _video_subsystem = components::EMULATOR.lock().unwrap().sdl_context.video().unwrap();
         let _window = _video_subsystem.window("Window", 256 * _scale, 240 * _scale)
             .opengl() // this line DOES NOT enable opengl, but allows you to create/get an OpenGL context from your window.
             .build()

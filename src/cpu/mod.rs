@@ -31,9 +31,6 @@ pub struct Cpu {
 
 unsafe impl Sync for Cpu {}
 
-/// Dummy function to temporarly load the instruction array
-
-
 impl Cpu {
     pub fn new() -> Cpu {
         Cpu {
@@ -102,6 +99,8 @@ impl Cpu {
         self.instructions.insert(0x00, Cpu::fn_0x00);
         
     }
+
+    /// Dummy function to temporarly load the instruction array
     fn dummy(&mut self) -> (u16, u32) {
         (0, 0)
     }

@@ -19,6 +19,5 @@ fn main() {
 
     println!("{}", CARTRIDGE.lock().unwrap().file_name);
 
-        
-    EMULATOR.start();
+    EMULATOR.lock().unwrap().start();
 }
