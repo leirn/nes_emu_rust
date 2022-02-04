@@ -1,3 +1,4 @@
+//! Bus and CPU RAM component
 use crate::components::{PPU, CARTRIDGE, APU};
 
 pub struct Memory {
@@ -5,12 +6,14 @@ pub struct Memory {
 }
 
 impl Memory {
+    /// Instantiate new Memory component
     pub fn new() -> Memory {
         Memory {
             internal_ram: [0; 0x800] // 2kB or internal RAM
         }
     }
 
+    /// Read 16-bit little endian address from memory
     pub fn read_rom_16(&mut self, address: u16) -> u16 {
         let mut high = 0;
         let mut low = 0;
@@ -25,6 +28,7 @@ impl Memory {
         low as u16 + ((high as u16) <<8)
     }
 
+    /// Read 16-bit little endian address from memory without crossing memory page
     pub fn read_rom_16_no_crossing_page(&mut self, address: u16) -> u16 {
         let high_address = (address & 0xFF00) +((address + 1) & 0xff);
         let mut high = 0;
