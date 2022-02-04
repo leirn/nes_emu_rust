@@ -20,7 +20,7 @@ impl NesEmulator {
         }
     }
 
-    pub fn start(&self) {
+    pub fn start(&mut self) {
         PPU.lock().unwrap().start();
         CPU.lock().unwrap().start(None);
         PPU.lock().unwrap().next();
