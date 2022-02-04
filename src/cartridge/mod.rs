@@ -3,6 +3,9 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
 
+mod mapper;
+mod mapper0;
+
 pub struct Cartridge {
     pub file_name: String,
     magic: Vec<u8>,
@@ -15,15 +18,19 @@ pub struct Cartridge {
     prg_ram_size: usize,
     f9: u8,
     f10: u8,
-    mapper_id:u16,
 
     prg_rom:Vec<u8>,
     chr_rom:Vec<u8>,
     prg_ram:Vec<u8>,
     trainer:Vec<u8>,
+    
+    mapper_id: u16,
+    // mapper is last cause size is unknown at compile time
+    mapper: Box<dyn mapper::Mapper>,
 }
 
 unsafe impl Sync for Cartridge {}
+unsafe impl Send for Cartridge {}
 
 impl Cartridge {
     /// Instantiate a new cartridge
@@ -40,12 +47,15 @@ impl Cartridge {
             prg_ram_size: 0,
             f9: 0,
             f10: 0,
-            mapper_id:0,
 
             prg_rom:vec![],
             chr_rom:vec![],
             prg_ram:vec![],
             trainer:vec![],
+            mapper_id:0,
+            mapper: Box::new(
+                mapper0::Mapper0::new()
+            )
         }
     }
 
@@ -110,31 +120,32 @@ impl Cartridge {
 
     /// Read cartridge RAM
     pub fn read_ram(&self, address: u16) -> u8 {
-        0
+        self.mapper.read_ram(address)
     }
 
     /// Read cartridge PRG ROM
     pub fn read_prg_rom(&self, address: u16) -> u8 {
-        0
+        self.mapper.read_prg_rom(address)
     }
 
     /// Read cartridge CHR ROM
     pub fn read_chr_rom(&self, address: u16) -> u8 {
-        0
+        self.mapper.read_chr_rom(address)
     }
 
     /// Write cartridge RAM
     pub fn write_ram(&self, address: u16, value: u8) {
-        
+        self.mapper.write_ram(address, value);
     }
 
     /// Write cartridge PRG ROM
     pub fn write_prg_rom(&self, address: u16, value: u8) {
-        
+        self.mapper.write_prg_rom(address, value);
     }
 
     /// Write cartridge CHR ROM
     pub fn write_chr_rom(&self, address: u16, value: u8) {
+        self.mapper.write_chr_rom(address, value);
         
     }
 }

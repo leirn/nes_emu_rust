@@ -1,7 +1,7 @@
 //! CPU clock
 //! Allows to managed the framerate
 
-struct Clock {
+pub struct Clock {
     frame_history:Vec<u64>,
 }
 
@@ -14,12 +14,12 @@ impl Clock {
     }
 
     /// Tick at each frame and wait to reach the target frame rate
-    pub fn tick(target_frame_rate as u32) {
+    pub fn tick(&mut self, target_frame_rate: u32) {
 
     }
 
     /// Get current fps
-    pub fn get_fps() -> f32 {
-        0
+    pub fn get_fps(&self) -> f32 {
+        0.0
     }
 }

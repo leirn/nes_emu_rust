@@ -1,5 +1,6 @@
 //! Emulator main engine
 use crate::components::{CPU, PPU};
+mod clock;
 
 pub struct NesEmulator {
     is_nmi: bool,
@@ -11,6 +12,7 @@ pub struct NesEmulator {
 }
 
 unsafe impl Sync for NesEmulator {}
+unsafe impl Send for NesEmulator {}
 
 impl NesEmulator {
     /// Instantiate the Emulator
