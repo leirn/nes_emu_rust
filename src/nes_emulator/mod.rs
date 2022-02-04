@@ -1,3 +1,4 @@
+//! Emulator main engine
 use crate::components::{CPU, PPU};
 
 pub struct NesEmulator {
@@ -10,6 +11,7 @@ pub struct NesEmulator {
 unsafe impl Sync for NesEmulator {}
 
 impl NesEmulator {
+    /// Instantiate the Emulator
     pub fn new() -> NesEmulator {
         let _sdl_context = sdl2::init().unwrap();
         NesEmulator{
@@ -20,6 +22,7 @@ impl NesEmulator {
         }
     }
 
+    /// Starts and runs the Emulator execution 
     pub fn start(&mut self) {
         PPU.lock().unwrap().start();
         CPU.lock().unwrap().start(None);
@@ -61,14 +64,17 @@ impl NesEmulator {
         }
     }
 
+    /// Toggles pause on the emulator execution
     pub fn toggle_pause(&mut self) {
         self.pause = !self.pause;
     }
 
+    /// Raises an NMI interrupt
     pub fn raise_nmi(&mut self) {
         self.is_nmi = true;
     }
 
+    /// Raises an IRQ interrupt
     pub fn raise_irq(&mut self) {
         self.is_irq = true;
     }
