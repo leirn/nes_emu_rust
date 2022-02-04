@@ -144,6 +144,11 @@ impl Cpu {
         self.compteur += 1;
     }
 
+    /// Get interrup flag status. Required for emulator to raise IRQ
+    pub fn getInterruptFlag(&self) -> bool {
+        self.interrupt
+    }
+    
     /// Raises an NMI interruption
     pub fn nmi(&mut self) {
         self.general_interrupt(0xfffa);
