@@ -1,5 +1,4 @@
 //! Screen component
-//!
 
 use crate::components;
 use sdl2::pixels::Color;
@@ -13,6 +12,7 @@ pub struct Screen {
 
 
 impl Screen {
+    /// Instantiate Screen component
     pub fn new() -> Screen {
         let _scale = 3;
         let _video_subsystem = components::EMULATOR.sdl_context.video().unwrap();
@@ -33,6 +33,7 @@ impl Screen {
         }
     }
 
+    /// Find SDL GL Driver to initiate SDL window
     fn find_sdl_gl_driver() -> Option<u32> {
         for (index, item) in sdl2::render::drivers().enumerate() {
             if item.name == "opengl" {
@@ -42,6 +43,7 @@ impl Screen {
         None
     }
 
+    /// Start the Screen component
     pub fn start(&mut self) {
         self.canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
         // fills the canvas with the color we set in `set_draw_color`.
@@ -70,6 +72,7 @@ impl Screen {
         // needed, and then `present()`; repeat this every new frame.
     }
 
+    /// Update a scaled pixel on the buffered canvas
     pub fn update_pixel(&mut self, x: u8, y: u8, color_index: u8) {
         self.canvas.set_draw_color(PALETTE[color_index as usize]);
         match self.canvas.fill_rect(sdl2::rect::Rect::new(self.scale as i32 * x as i32, self.scale as i32 * y as i32, self.scale, self.scale)) {
@@ -78,11 +81,13 @@ impl Screen {
         }
     }
 
+    /// Refresh the windows with the buffered canvas
     pub fn present(&mut self) {
         self.canvas.present();
     }
 }
 
+/// NES color palette
 const PALETTE: [Color; 64] = [
     Color::RGB(84,  84,  84), 	Color::RGB(0,  30, 116),	Color::RGB(8, 16, 144),	    Color::RGB(48, 0, 136), 	Color::RGB(68, 0, 100),  	Color::RGB(92, 0,  48),   	Color::RGB(84, 4, 0),   	Color::RGB(60, 24, 0),   	Color::RGB(32, 42, 0), 	    Color::RGB(8, 58, 0),    	Color::RGB(0, 64, 0),    	Color::RGB(0, 60, 0),    	Color::RGB(0, 50, 60),    	Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),
     Color::RGB(152, 150, 152),  Color::RGB(8,  76, 196),   	Color::RGB(48, 50, 236),   	Color::RGB(92, 30, 228),  	Color::RGB(136, 20, 176), 	Color::RGB(160, 20, 100),  	Color::RGB(152, 34, 32),  	Color::RGB(120, 60, 0),   	Color::RGB(84, 90, 0),   	Color::RGB(40, 114, 0),    	Color::RGB(8, 124, 0),    	Color::RGB(0, 118, 40),    	Color::RGB(0, 102, 120),    Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),	Color::RGB(0,   0,   0),
