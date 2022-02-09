@@ -225,6 +225,15 @@ impl Cpu {
         self.instructions.insert(0x7c, Cpu::fn_0x7c);
         self.instructions.insert(0xdc, Cpu::fn_0xdc);
         self.instructions.insert(0xfc, Cpu::fn_0xfc);
+        // ORA
+        self.instructions.insert(0x09, Cpu::fn_0x09);
+        self.instructions.insert(0x05, Cpu::fn_0x05);
+        self.instructions.insert(0x15, Cpu::fn_0x15);
+        self.instructions.insert(0x0d, Cpu::fn_0x0d);
+        self.instructions.insert(0x1d, Cpu::fn_0x1d);
+        self.instructions.insert(0x19, Cpu::fn_0x19);
+        self.instructions.insert(0x01, Cpu::fn_0x01);
+        self.instructions.insert(0x11, Cpu::fn_0x11);
     }
 
     /// Dummy function to temporarly load the instruction array
@@ -1717,6 +1726,83 @@ impl Cpu {
     fn fn_0xfc(&mut self) -> (u16, u32) {
         self.get_absolute_x_value(true); // Need extra cycle
         (3, 4)
+    }
+
+    /// Function call for ORA #$xx. Immediate
+    fn fn_0x09(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_immediate();
+        self.set_flags_nz(self.accumulator);
+        (2, 2)
+    }
+
+    /// Function call for ORA $xx. Zero Page
+    fn fn_0x05(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_zero_page_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 3)
+    }
+
+    /// Function call for ORA $xx, X. Zero Page, X
+    fn fn_0x15(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_zero_page_x_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 4)
+    }
+
+    /// Function call for ORA $xxxx. Absolute
+    fn fn_0x0d(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_absolute_value();
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for ORA $xxxx, X. Absolute, X
+    fn fn_0x1d(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_absolute_x_value(true);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for ORA $xxxx, X. Absolute, X
+    fn fn_0x1d_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_absolute_x_value(false);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for ORA $xxxx, Y. Absolute, Y
+    fn fn_0x19(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_absolute_y_value(true);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for ORA $xxxx, Y. Absolute, Y
+    fn fn_0x19_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_absolute_y_value(false);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for ORA ($xx, X). Indirect, X
+    fn fn_0x01(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_indirect_x_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 6)
+    }
+
+    /// Function call for ORA ($xx), Y. Indirect, Y
+    fn fn_0x11(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_indirect_y_value(true);
+        self.set_flags_nz(self.accumulator);
+        (2, 5)
+    }
+
+    /// Function call for ORA ($xx), Y. Indirect, Y
+    fn fn_0x11_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        self.accumulator |= self.get_indirect_y_value(false);
+        self.set_flags_nz(self.accumulator);
+        (2, 5)
     }
 
     /// General implementation for sbc operation
