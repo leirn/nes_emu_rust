@@ -1,6 +1,9 @@
 //! PPU Component of the NES
 //! NSTC implementation
 mod screen;
+use crate::cartridge::Cartridge;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct Ppu {
     screen: screen::Screen,
@@ -11,7 +14,8 @@ pub struct Ppu {
     register_x: u8,     // Fine X Scroll, 3 bits
     register_w: bool,   // First or second write toggle, 1 bit
     
-    // Sprite registersself.primary_oam = bytearray(b'\0' * 0x100)
+    // Sprite registers
+    primary_oam: [u8; 0x100],
     secondary_oam: [u8; 0x40],
     sprite_count: u8,
     sprite_fetcher_count: u8,
@@ -39,9 +43,9 @@ unsafe impl Send for Ppu {}
 
 impl Ppu {
     /// Instantiate the PPU
-    pub fn new() -> Ppu {
+    pub fn new(cartridge: Rc<RefCell<Cartridge>>, sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Ppu {
         Ppu {
-            screen : screen::Screen::new(),
+            screen : screen::Screen::new(sdl_context),
     
             // internal registers
             register_v: 0,      // Current VRAM address, 15 bits
@@ -49,7 +53,8 @@ impl Ppu {
             register_x: 0,      // Fine X Scroll, 3 bits
             register_w: false,  // First or second write toggle, 1 bit
 
-            // Sprite registersself.primary_oam = bytearray(b'\0' * 0x100)
+            // Sprite registers
+            primary_oam: [0; 0x100],
             secondary_oam: [0; 0x40],
             sprite_count: 0,
             sprite_fetcher_count: 0,
@@ -83,6 +88,7 @@ impl Ppu {
             }
         }
         self.screen.present();
+        println!("PPU started, screen initialized");
     }
 
     /// Execute next instruction

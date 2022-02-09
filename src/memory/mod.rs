@@ -1,15 +1,25 @@
 //! Bus and CPU RAM component
-use crate::components::{PPU, CARTRIDGE, APU};
+use std::cell::RefCell;
+use std::rc::Rc;
+use crate::apu::Apu;
+use crate::ppu::Ppu;
+use crate::cartridge::Cartridge;
 
 pub struct Memory {
     internal_ram: [u8; 0x800],
+    apu: Rc<RefCell<Apu>>,
+    ppu: Rc<RefCell<Ppu>>,
+    cartridge: Rc<RefCell<Cartridge>>,
 }
 
 impl Memory {
     /// Instantiate new Memory component
-    pub fn new() -> Memory {
+    pub fn new(cartridge: Rc<RefCell<Cartridge>>, ppu: Rc<RefCell<Ppu>>, apu: Rc<RefCell<Apu>>) -> Memory {
         Memory {
-            internal_ram: [0; 0x800] // 2kB or internal RAM
+            internal_ram: [0; 0x800], // 2kB or internal RAM
+            apu: apu,
+            ppu: ppu,
+            cartridge: cartridge,
         }
     }
 
@@ -18,8 +28,8 @@ impl Memory {
         let mut high = 0;
         let mut low = 0;
         if address > 0x7fff {
-            low = CARTRIDGE.lock().unwrap().read_prg_rom(address - 0x8000);
-            high = CARTRIDGE.lock().unwrap().read_prg_rom(address + 1 - 0x8000);
+            low = self.cartridge.borrow_mut().read_prg_rom(address - 0x8000);
+            high = self.cartridge.borrow_mut().read_prg_rom(address + 1 - 0x8000);
         }
         else {
             low = self.internal_ram[address as usize];
@@ -34,8 +44,8 @@ impl Memory {
         let mut high = 0;
         let mut low = 0;
         if address > 0x7fff {
-            low = CARTRIDGE.lock().unwrap().read_prg_rom(address - 0x8000);
-            high = CARTRIDGE.lock().unwrap().read_prg_rom(high_address - 0x8000);
+            low = self.cartridge.borrow_mut().read_prg_rom(address - 0x8000);
+            high = self.cartridge.borrow_mut().read_prg_rom(high_address - 0x8000);
         }
         else {
             low = self.internal_ram[address as usize];
@@ -60,13 +70,13 @@ impl Memory {
                 match local_address {
                     0x2000 => 0,
                     0x2001 => 0,
-                    0x2002 => PPU.lock().unwrap().read_0x2002(),
+                    0x2002 => self.ppu.borrow_mut().read_0x2002(),
                     0x2003 => 0,
-                    0x2004 => PPU.lock().unwrap().read_0x2004(),
+                    0x2004 => self.ppu.borrow_mut().read_0x2004(),
                     0x2005 => 0,
                     0x2006 => 0,
-                    0x2007 => PPU.lock().unwrap().read_0x2007(),
-                    _ => 0, // won"t happen based on local_address cimputation
+                    0x2007 => self.ppu.borrow_mut().read_0x2007(),
+                    _ => 0, // won"t happen based on local_address computation
                 }
             },
             0x4000..=0x4017 => {
@@ -76,13 +86,13 @@ impl Memory {
                     // Read input 2
                     0x4017 => 0,
                     // Read APU
-                    _ => APU.lock().unwrap().read_registers(address),
+                    _ => self.apu.borrow_mut().read_registers(address),
                 }
             },
             0x4018..=0x401f => 0, // Normally disabled
             0x4020..=0x5fff => 0, // Cartridge space, but for what ?
-            0x6000..=0x7fff => CARTRIDGE.lock().unwrap().read_ram(address - 0x6000),
-            0x8000..=0xffff => CARTRIDGE.lock().unwrap().read_prg_rom(address - 0x8000),
+            0x6000..=0x7fff => self.cartridge.borrow_mut().read_ram(address - 0x6000),
+            0x8000..=0xffff => self.cartridge.borrow_mut().read_prg_rom(address - 0x8000),
         }
     }
 
@@ -101,14 +111,14 @@ impl Memory {
             0x2000..=0x3fff => {
                 let local_address = 0x2000 + (address % 8);
                 match local_address {
-                    0x2000 => PPU.lock().unwrap().write_0x2000(value),
-                    0x2001 => PPU.lock().unwrap().write_0x2001(value),
+                    0x2000 => self.ppu.borrow_mut().write_0x2000(value),
+                    0x2001 => self.ppu.borrow_mut().write_0x2001(value),
                     0x2002 => (), // Read-only
-                    0x2003 => PPU.lock().unwrap().write_0x2003(value),
-                    0x2004 => PPU.lock().unwrap().write_0x2004(value),
-                    0x2005 => PPU.lock().unwrap().write_0x2005(value),
-                    0x2006 => PPU.lock().unwrap().write_0x2006(value),
-                    0x2007 => PPU.lock().unwrap().write_0x2007(value),
+                    0x2003 => self.ppu.borrow_mut().write_0x2003(value),
+                    0x2004 => self.ppu.borrow_mut().write_0x2004(value),
+                    0x2005 => self.ppu.borrow_mut().write_0x2005(value),
+                    0x2006 => self.ppu.borrow_mut().write_0x2006(value),
+                    0x2007 => self.ppu.borrow_mut().write_0x2007(value),
                     _ => (), // won"t happen based on local_address cimputation
                 }
             },
@@ -119,13 +129,13 @@ impl Memory {
                     // OAMDMA
                     0x4014 => (),
                     // Read APU
-                    _ => APU.lock().unwrap().write_registers(address, value),
+                    _ => self.apu.borrow_mut().write_registers(address, value),
                 }
             },
             0x4018..=0x401f => (), // Normally disabled
             0x4020..=0x5fff => (), // Cartridge space, but for what ?
-            0x6000..=0x7fff => CARTRIDGE.lock().unwrap().write_ram(address - 0x6000, value),
-            0x8000..=0xffff => CARTRIDGE.lock().unwrap().write_prg_rom(address - 0x8000, value),
+            0x6000..=0x7fff => self.cartridge.borrow_mut().write_ram(address - 0x6000, value),
+            0x8000..=0xffff => self.cartridge.borrow_mut().write_prg_rom(address - 0x8000, value),
         }
     }
 }

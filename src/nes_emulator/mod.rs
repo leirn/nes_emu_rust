@@ -1,14 +1,20 @@
 //! Emulator main engine
-use crate::components::{CPU, PPU};
 mod clock;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct NesEmulator {
     is_nmi: bool,
     is_irq: bool,
     pause: bool,
     is_frame_updated: bool,
-    pub sdl_context: sdl2::Sdl,
+    pub sdl_context: Rc<RefCell<sdl2::Sdl>>,
     clock: clock::Clock,
+    cartridge: Rc<RefCell<crate::cartridge::Cartridge>>,
+    memory: Rc<RefCell<crate::memory::Memory>>,
+    apu: Rc<RefCell<crate::apu::Apu>>,
+    ppu: Rc<RefCell<crate::ppu::Ppu>>,
+    cpu: Rc<RefCell<crate::cpu::Cpu>>,
 }
 
 unsafe impl Sync for NesEmulator {}
@@ -16,8 +22,17 @@ unsafe impl Send for NesEmulator {}
 
 impl NesEmulator {
     /// Instantiate the Emulator
-    pub fn new() -> NesEmulator {
-        let _sdl_context = sdl2::init().unwrap();
+    pub fn new(rom_file: String) -> NesEmulator {
+        let _sdl_context = Rc::new(RefCell::new(sdl2::init().unwrap()));
+        println!("SDL Context initialized");
+
+        
+        let cartridge = Rc::new(RefCell::new(crate::cartridge::Cartridge::new(rom_file)));
+        let apu = Rc::new(RefCell::new(crate::apu::Apu::new()));
+        let ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(cartridge.clone(), _sdl_context.clone())));
+        let memory = Rc::new(RefCell::new(crate::memory::Memory::new(Rc::clone(&cartridge), Rc::clone(&ppu), Rc::clone(&apu))));
+        let cpu = Rc::new(RefCell::new(crate::cpu::Cpu::new(Rc::clone(&memory))));
+
         NesEmulator{
             is_nmi: false,
             is_irq: false,
@@ -25,16 +40,21 @@ impl NesEmulator {
             is_frame_updated: false,
             sdl_context: _sdl_context,
             clock: clock::Clock::new(),
+            cartridge: cartridge,
+            memory: memory,
+            apu: apu,
+            ppu: ppu,
+            cpu: cpu,
         }
     }
 
     /// Starts and runs the Emulator execution 
     pub fn start(&mut self) {
-        PPU.lock().unwrap().start();
-        CPU.lock().unwrap().start(None);
-        PPU.lock().unwrap().next();
-        PPU.lock().unwrap().next();
-        PPU.lock().unwrap().next();
+        self.ppu.borrow_mut().start();
+        self.cpu.borrow_mut().start(None);
+        self.ppu.borrow_mut().next();
+        self.ppu.borrow_mut().next();
+        self.ppu.borrow_mut().next();
 
         let mut continuer:bool = true;
 
@@ -42,17 +62,16 @@ impl NesEmulator {
             if !self.pause {
                 if self.is_nmi {
                     self.is_nmi = false;
-                    CPU.lock().unwrap().nmi();
+                    self.cpu.borrow_mut().nmi();
                 }
-                if self.is_irq && CPU.lock().unwrap().getInterruptFlag() {
+                if self.is_irq && self.cpu.borrow_mut().get_interrupt_flag() {
                     self.is_irq = false;
-                    CPU.lock().unwrap().irq();
+                    self.cpu.borrow_mut().irq();
                 }
-
-                CPU.lock().unwrap().next();
-                PPU.lock().unwrap().next();
-                PPU.lock().unwrap().next();
-                PPU.lock().unwrap().next();
+                self.cpu.borrow_mut().next();
+                self.ppu.borrow_mut().next();
+                self.ppu.borrow_mut().next();
+                self.ppu.borrow_mut().next();
                 
                 if self.is_frame_updated {
                     self.clock.tick(60);
@@ -60,7 +79,7 @@ impl NesEmulator {
                 }
             }
 
-            let mut event_pump = self.sdl_context.event_pump().unwrap();
+            let mut event_pump = self.sdl_context.borrow_mut().event_pump().unwrap();
             for event in event_pump.poll_iter() {
                 use sdl2::event::Event;
                 match event {

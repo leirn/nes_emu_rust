@@ -1,8 +1,14 @@
 //! CPU component
-use crate::components::{MEMORY};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::collections::HashMap;
+use crate::memory::Memory;
+
 
 pub struct Cpu {
+    // Access to BUS
+    memory: Rc<RefCell<Memory>>,
+
     // Registers
     accumulator: u8,
     x_register: u8,
@@ -29,11 +35,10 @@ pub struct Cpu {
     compteur: u32,
 }
 
-unsafe impl Sync for Cpu {}
-
 impl Cpu {
-    pub fn new() -> Cpu {
+    pub fn new(memory: Rc<RefCell<Memory>>) -> Cpu {
         Cpu {
+            memory: memory,
             accumulator: 0,
             x_register: 0,
             y_register: 0,
@@ -102,7 +107,8 @@ impl Cpu {
 
     /// Dummy function to temporarly load the instruction array
     fn dummy(&mut self) -> (u16, u32) {
-        (0, 0)
+        panic!("Function is not implemented yet at PC = {}", self.program_counter);
+        //(0, 0)
     }
     /// CPU initialisation function
     pub fn start(&mut self, entry_point: Option<u16>) {
@@ -110,8 +116,10 @@ impl Cpu {
 
         self.populate_instructions_vector();
 
-        // Fnault is equivalent to JMP ($FFFC)
-        self.program_counter = entry_point.unwrap_or(MEMORY.lock().unwrap().read_rom_16(0xfffc));
+        // Default is equivalent to JMP ($FFFC)
+        self.program_counter = entry_point.unwrap_or(self.memory.borrow_mut().read_rom_16(0xfffc));
+
+        println!("Entry point is {}", self.program_counter);
 
         //Start sequence push stack three time
         self.push(0);
@@ -131,10 +139,10 @@ impl Cpu {
             self.remaining_cycles -= 1;
         }
 
-        let opcode:u8  = MEMORY.lock().unwrap().read_rom(self.program_counter);
+        let opcode:u8  = self.memory.borrow_mut().read_rom(self.program_counter);
 
         let cpu_instruction = self.instructions[&opcode];
-
+        
         let (step, remaining_cycles) = cpu_instruction(self);
         self.remaining_cycles = remaining_cycles + self.additionnal_cycles;
         self.total_cycles += self.remaining_cycles;
@@ -145,7 +153,7 @@ impl Cpu {
     }
 
     /// Get interrup flag status. Required for emulator to raise IRQ
-    pub fn getInterruptFlag(&self) -> bool {
+    pub fn get_interrupt_flag(&self) -> bool {
         self.interrupt
     }
     
@@ -169,7 +177,7 @@ impl Cpu {
 
         self.interrupt = false;
 
-        self.program_counter = MEMORY.lock().unwrap().read_rom_16(address);
+        self.program_counter = self.memory.borrow_mut().read_rom_16(address);
         self.remaining_cycles = 7 - 1; // do not count current cycle twice
         self.total_cycles += 7
 
@@ -204,24 +212,25 @@ impl Cpu {
 
     /// Push value into stack
     fn push(&mut self, value:u8) {
-        MEMORY.lock().unwrap().write_rom(0x0100 | (self.stack_pointer as u16), value);
+        self.memory.borrow_mut().write_rom(0x0100 | (self.stack_pointer as u16), value);
         self.stack_pointer = self.stack_pointer - 1; // Will eventually overflow on purpose
     }
 
     /// Pop/Pull value from stack
     fn pull(&mut self) -> u8 {
         self.stack_pointer = self.stack_pointer + 1; // Will eventually overflow on purpose
-        MEMORY.lock().unwrap().read_rom(0x0100 | (self.stack_pointer as u16))
+        self.memory.borrow_mut().read_rom(0x0100 | (self.stack_pointer as u16))
     }
 
     /// Get 8 bit immediate value on PC + 1
     fn get_immediate(&mut self) -> u8 {
-        MEMORY.lock().unwrap().read_rom(self.program_counter+1)
+        self.memory.borrow_mut().read_rom(self.program_counter+1)
     }
 
     /// Write val into Zero Page memory. Address is given as opcode 1-byte argument
     fn set_zero_page(&mut self, value: u8) {
-        MEMORY.lock().unwrap().write_rom(self.get_zero_page_address(), value)
+        let address = self.get_zero_page_address();
+        self.memory.borrow_mut().write_rom(address, value);
     }
 
     /// Get ZeroPage address to be used for current opcode. Alias to get_immediate
@@ -232,68 +241,72 @@ impl Cpu {
     /// Get val from Zero Page MEMORY. Address is given as opcode 1-byte argument
     fn get_zero_page_value(&mut self) -> u8 {
         let address = self.get_immediate() as u16;
-        MEMORY.lock().unwrap().read_rom(address)
+        self.memory.borrow_mut().read_rom(address)
     }
 
     /// Write val into Zero Page MEMORY. Address is given as opcode 1-byte argument and X register
     fn set_zero_page_x(&mut self, value: u8) {
-        MEMORY.lock().unwrap().write_rom(self.get_zero_page_x_address(), value);
+        let address = self.get_zero_page_x_address();
+        self.memory.borrow_mut().write_rom(address, value);
     }
 
     /// Get ZeroPage address to be used for current opcode and X register
     fn get_zero_page_x_address(&mut self) -> u16 {
-        ((MEMORY.lock().unwrap().read_rom(self.program_counter+1) + self.x_register) & 255) as u16
+        ((self.memory.borrow_mut().read_rom(self.program_counter+1) + self.x_register) & 255) as u16
     }
 
     /// Get value at ZeroPage address to be used for current opcode and X register
     fn get_zero_page_x_value(&mut self) -> u8 {
         let address = self.get_zero_page_x_address();
-        MEMORY.lock().unwrap().read_rom(address)
+        self.memory.borrow_mut().read_rom(address)
     }
 
     /// Write val into Zero Page MEMORY. Address is given as opcode 1-byte argument and Y register
     fn set_zero_page_y(&mut self, value: u8) {
-        MEMORY.lock().unwrap().write_rom(self.get_zero_page_y_address(), value)
+        let address = self.get_zero_page_y_address();
+        self.memory.borrow_mut().write_rom(address, value);
     }
 
     /// Get ZeroPage address to be used for current opcode and Y register
     fn get_zero_page_y_address(&mut self) -> u16 {
-          ((MEMORY.lock().unwrap().read_rom(self.program_counter+1) + self.y_register) & 255) as u16
+          ((self.memory.borrow_mut().read_rom(self.program_counter+1) + self.y_register) & 255) as u16
     }
 
     /// Get value at ZeroPage address to be used for current opcode and Y register
     fn get_zero_page_y_value(&mut self) -> u8 {
         let address = self.get_zero_page_y_address();
-        MEMORY.lock().unwrap().read_rom(address)
+        self.memory.borrow_mut().read_rom(address)
     }
 
     /// Write val into MEMORY. Address is given as opcode 2-byte argument
     fn set_absolute(&mut self, value: u8) {
-        MEMORY.lock().unwrap().write_rom(self.get_absolute_address(), value)
+        let address = self.get_absolute_address();
+        self.memory.borrow_mut().write_rom(address, value);
     }
 
     /// Get address given as opcode 2-byte argument
     fn get_absolute_address(&mut self) -> u16 {
-         MEMORY.lock().unwrap().read_rom_16(self.program_counter+1)
+         self.memory.borrow_mut().read_rom_16(self.program_counter+1)
     }
 
     /// Get val from MEMORY. Address is given as opcode 2-byte argument
     fn get_absolute_value(&mut self) -> u8 {
         let address = self.get_absolute_address();
-        MEMORY.lock().unwrap().read_rom(address)
+        self.memory.borrow_mut().read_rom(address)
     }
 
     /// Write val into MEMORY. Address is given as opcode 2-byte argument and X register
     /// additionnal is boolean to fnine if this instruction will require extra cycles on page crossing
     fn set_absolute_x(&mut self, value: u8, is_additionnal: Option<bool>) {
         let additionnal = is_additionnal.unwrap_or(true);
-        MEMORY.lock().unwrap().write_rom(self.get_absolute_x_address(Some(additionnal)), value);
+        let address = self.get_absolute_x_address(Some(additionnal));
+        self.memory.borrow_mut().write_rom(address, value);
     }
 
     /// Get address given as opcode 2-byte argument and X register
     fn get_absolute_x_address(&mut self, is_additionnal: Option<bool>) -> u16 {
         let additionnal = is_additionnal.unwrap_or(true);
-        let address = MEMORY.lock().unwrap().read_rom_16(self.program_counter+1);
+        let address = self.memory.borrow_mut().read_rom_16(self.program_counter+1);
         let target_address = address + self.x_register as u16;
         if  additionnal && address & 0xFF00 != target_address & 0xff00 {
             self.additionnal_cycles += 1;
@@ -305,19 +318,20 @@ impl Cpu {
     fn get_absolute_x_value(&mut self, is_additionnal: Option<bool>) -> u8 {
         let additionnal = is_additionnal.unwrap_or(true);
         let address = self.get_absolute_x_address(Some(additionnal));
-        MEMORY.lock().unwrap().read_rom(address)
+        self.memory.borrow_mut().read_rom(address)
     }
 
     /// Write val into MEMORY. Address is given as opcode 2-byte argument and Y register
     fn set_absolute_y(&mut self, value: u8, is_additionnal: Option<bool>) {
         let additionnal = is_additionnal.unwrap_or(true);
-        MEMORY.lock().unwrap().write_rom(self.get_absolute_y_address(Some(additionnal)), value);
+        let address = self.get_absolute_y_address(Some(additionnal));
+        self.memory.borrow_mut().write_rom(address, value);
     }
 
     /// Get address given as opcode 2-byte argument and Y register
     fn get_absolute_y_address(&mut self, is_additionnal: Option<bool>)-> u16 {
         let additionnal = is_additionnal.unwrap_or(true);
-        let address = MEMORY.lock().unwrap().read_rom_16(self.program_counter+1);
+        let address = self.memory.borrow_mut().read_rom_16(self.program_counter+1);
         let target_address = address + self.y_register as u16;
         if additionnal && address & 0xff00 != target_address & 0xff00 {
             self.additionnal_cycles += 1;
@@ -329,31 +343,32 @@ impl Cpu {
     fn get_absolute_y_value(&mut self, is_additionnal: Option<bool>)-> u8 {
         let additionnal = is_additionnal.unwrap_or(true);
         let address = self.get_absolute_y_address(is_additionnal);
-        MEMORY.lock().unwrap().read_rom(address)
+        self.memory.borrow_mut().read_rom(address)
     }
 
     /// Get indirect address given as opcode 2-byte argument and X register
     fn get_indirect_x_address(&mut self) -> u16 {
         let address = self.get_zero_page_x_address();
-        MEMORY.lock().unwrap().read_rom_16_no_crossing_page(address)
+        self.memory.borrow_mut().read_rom_16_no_crossing_page(address)
     }
 
     /// Get val from MEMORY. Indirect address is given as opcode 2-byte argument and X register
     fn get_indirect_x_value(&mut self) -> u8 {
         let address = self.get_indirect_x_address();
-        MEMORY.lock().unwrap().read_rom(address)
+        self.memory.borrow_mut().read_rom(address)
     }
 
     /// Write val into MEMORY. Indirect address is given as opcode 2-byte argument and X register/// 
     fn set_indirect_x(&mut self, value: u8) {
-        MEMORY.lock().unwrap().write_rom(self.get_indirect_x_address(), value);
+        let address = self.get_indirect_x_address();
+        self.memory.borrow_mut().write_rom(address, value);
     }
 
     /// Get indirect address given as opcode 2-byte argument and Y register
     fn get_indirect_y_address(&mut self, is_additionnal: Option<bool>) -> u16 {
         let additionnal = is_additionnal.unwrap_or(true);
         let address = self.get_zero_page_address();
-        let address = MEMORY.lock().unwrap().read_rom_16_no_crossing_page(address);
+        let address = self.memory.borrow_mut().read_rom_16_no_crossing_page(address);
         let target_address = address + self.y_register as u16;
         if additionnal && address & 0xff00 != target_address & 0xff00 {
             self.additionnal_cycles += 1;
@@ -365,13 +380,14 @@ impl Cpu {
     fn get_indirect_y_value(&mut self, is_additionnal: Option<bool>) -> u8 {
         let additionnal = is_additionnal.unwrap_or(true);
         let address = self.get_indirect_y_address(Some(additionnal));
-        MEMORY.lock().unwrap().read_rom(address)
+        self.memory.borrow_mut().read_rom(address)
     }
 
     /// Write val into MEMORY. Indirect address is given as opcode 2-byte argument and Y register
     fn set_indirect_y(&mut self, value: u8, is_additionnal: Option<bool>) {
         let additionnal = is_additionnal.unwrap_or(true);
-        MEMORY.lock().unwrap().write_rom(self.get_indirect_y_address(Some(additionnal)), value);
+        let address = self.get_indirect_y_address(Some(additionnal));
+        self.memory.borrow_mut().write_rom(address, value);
     }
 
     /// Sets flags N and Z according to value
@@ -741,7 +757,7 @@ impl Cpu {
         self.push((self.program_counter >> 8) as u8);
         self.push((self.program_counter & 0xff) as u8);
         self.push(self.get_status_register());
-        self.program_counter = MEMORY.lock().unwrap().read_rom_16(0xfffe);
+        self.program_counter = self.memory.borrow_mut().read_rom_16(0xfffe);
         (0, 7)
     }
 }

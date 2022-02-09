@@ -1,7 +1,8 @@
 //! Screen component
 
-use crate::components;
 use sdl2::pixels::Color;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct Screen {
     scale: u32,
@@ -12,9 +13,9 @@ pub struct Screen {
 
 impl Screen {
     /// Instantiate Screen component
-    pub fn new() -> Screen {
+    pub fn new(sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Screen {
         let _scale = 3;
-        let _video_subsystem = components::EMULATOR.lock().unwrap().sdl_context.video().unwrap();
+        let _video_subsystem = sdl_context.borrow_mut().video().unwrap();
         let _window = _video_subsystem.window("Window", 256 * _scale, 240 * _scale)
             .opengl() // this line DOES NOT enable opengl, but allows you to create/get an OpenGL context from your window.
             .build()
