@@ -1,2 +1,4 @@
 {
+    "editor.defaultFormatter": "rust-lang.rust",
+    "files.trimTrailingWhitespace": true
 }
