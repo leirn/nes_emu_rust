@@ -131,6 +131,67 @@ impl Cpu {
         self.instructions.insert(0xdb, Cpu::fn_0xdb);
         self.instructions.insert(0xc3, Cpu::fn_0xc3);
         self.instructions.insert(0xd3, Cpu::fn_0xd3);
+        // ISC
+        self.instructions.insert(0xe7, Cpu::fn_0xe7);
+        self.instructions.insert(0xf7, Cpu::fn_0xf7);
+        self.instructions.insert(0xef, Cpu::fn_0xef);
+        self.instructions.insert(0xff, Cpu::fn_0xff);
+        self.instructions.insert(0xfb, Cpu::fn_0xfb);
+        self.instructions.insert(0xe3, Cpu::fn_0xe3);
+        self.instructions.insert(0xf3, Cpu::fn_0xf3);
+        // EOR
+        self.instructions.insert(0x49, Cpu::fn_0x49);
+        self.instructions.insert(0x45, Cpu::fn_0x45);
+        self.instructions.insert(0x55, Cpu::fn_0x55);
+        self.instructions.insert(0x4d, Cpu::fn_0x4d);
+        self.instructions.insert(0x5d, Cpu::fn_0x5d);
+        self.instructions.insert(0x59, Cpu::fn_0x59);
+        self.instructions.insert(0x41, Cpu::fn_0x41);
+        self.instructions.insert(0x51, Cpu::fn_0x51);
+        // Flags
+        self.instructions.insert(0x18, Cpu::fn_0x18);
+        self.instructions.insert(0x38, Cpu::fn_0x38);
+        self.instructions.insert(0x58, Cpu::fn_0x58);
+        self.instructions.insert(0x78, Cpu::fn_0x78);
+        self.instructions.insert(0xb8, Cpu::fn_0xb8);
+        self.instructions.insert(0xd8, Cpu::fn_0xd8);
+        self.instructions.insert(0xf8, Cpu::fn_0xf8);
+        // INC
+        self.instructions.insert(0xe6, Cpu::fn_0xe6);
+        self.instructions.insert(0xf6, Cpu::fn_0xf6);
+        self.instructions.insert(0xee, Cpu::fn_0xee);
+        self.instructions.insert(0xfe, Cpu::fn_0xfe);
+        // JMP / JSR
+        self.instructions.insert(0x4c, Cpu::fn_0x4c);
+        self.instructions.insert(0x6c, Cpu::fn_0x6c);
+        self.instructions.insert(0x20, Cpu::fn_0x20);
+        // LDA
+        self.instructions.insert(0xa9, Cpu::fn_0xa9);
+        self.instructions.insert(0xa5, Cpu::fn_0xa5);
+        self.instructions.insert(0xb5, Cpu::fn_0xb5);
+        self.instructions.insert(0xad, Cpu::fn_0xad);
+        self.instructions.insert(0xbd, Cpu::fn_0xbd);
+        self.instructions.insert(0xb9, Cpu::fn_0xb9);
+        self.instructions.insert(0xa1, Cpu::fn_0xa1);
+        self.instructions.insert(0xb1, Cpu::fn_0xb1);
+        // LDX
+        self.instructions.insert(0xa2, Cpu::fn_0xa2);
+        self.instructions.insert(0xa6, Cpu::fn_0xa6);
+        self.instructions.insert(0xb6, Cpu::fn_0xb6);
+        self.instructions.insert(0xae, Cpu::fn_0xae);
+        self.instructions.insert(0xbe, Cpu::fn_0xbe);
+        // LDY
+        self.instructions.insert(0xa0, Cpu::fn_0xa0);
+        self.instructions.insert(0xa4, Cpu::fn_0xa4);
+        self.instructions.insert(0xb4, Cpu::fn_0xb4);
+        self.instructions.insert(0xac, Cpu::fn_0xac);
+        self.instructions.insert(0xbc, Cpu::fn_0xbc);
+        // LSR
+        self.instructions.insert(0x4a, Cpu::fn_0x4a);
+        self.instructions.insert(0x46, Cpu::fn_0x46);
+        self.instructions.insert(0x56, Cpu::fn_0x56);
+        self.instructions.insert(0x4e, Cpu::fn_0x4e);
+        self.instructions.insert(0x5e, Cpu::fn_0x5e);
     }
 
     /// Dummy function to temporarly load the instruction array
@@ -1027,5 +1088,441 @@ impl Cpu {
         self.set_indirect_y(value, false);
         self.cmp(self.accumulator, value);
         (2, 8)
+    }
+
+    /// Function call for ISC $xx. Zero Page
+    fn fn_0xe7(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_value();
+        let value = value + 1;
+        self.set_zero_page(value);
+        self.sbc(value);
+        (2, 5)
+    }
+
+    /// Function call for ISC $xx, X. Zero Page, X
+    fn fn_0xf7(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_x_value();
+        let value = value + 1;
+        self.set_zero_page_x(value);
+        self.sbc(value);
+        (2, 6)
+    }
+
+    /// Function call for ISC $xxxx. Absolute
+    fn fn_0xef(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_value();
+        let value = value + 1;
+        self.set_absolute(value);
+        self.sbc(value);
+        (3, 6)
+    }
+
+    /// Function call for ISC $xxxx, X. Absolute, X
+    fn fn_0xff(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_x_value(false);
+        let value = value + 1;
+        self.set_absolute_x(value, false);
+        self.sbc(value);
+        (3, 7)
+    }
+
+    /// Function call for ISC $xxxx, Y. Absolute, Y
+    fn fn_0xfb(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_y_value(false);
+        let value = value + 1;
+        self.set_absolute_y(value, false);
+        self.sbc(value);
+        (3, 7)
+    }
+
+    /// Function call for ISC ($xx), X. Indirect, X
+    fn fn_0xe3(&mut self) -> (u16, u32) {
+        let value = self.get_indirect_x_value();
+        let value = value + 1;
+        self.set_indirect_x(value);
+        self.sbc(value);
+        (2, 8)
+    }
+
+    /// Function call for ISC ($xx, Y). Indirect, Y
+    fn fn_0xf3(&mut self) -> (u16, u32) {
+        let value = self.get_indirect_y_value(false);
+        let value = value + 1;
+        self.set_indirect_y(value, false);
+        self.sbc(value);
+        (2, 6)
+    }
+
+    /// Function call for EOR #$xx. Immediate
+    fn fn_0x49(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_immediate();
+        self.set_flags_nz(self.accumulator);
+        (2, 2)
+    }
+
+    /// Function call for EOR $xx. Zero Page
+    fn fn_0x45(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_zero_page_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 3)
+    }
+
+    /// Function call for EOR $xx, X. Zero Page, X
+    fn fn_0x55(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_zero_page_x_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 4)
+    }
+
+    /// Function call for EOR $xxxx. Absolute
+    fn fn_0x4d(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_absolute_value();
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for EOR $xxxx, X. Absolute, X
+    fn fn_0x5d(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_absolute_x_value(true);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for EOR $xxxx, X. Absolute, X
+    fn fn_0x5d_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_absolute_x_value(false);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for EOR $xxxx, Y. Absolute, Y
+    fn fn_0x59(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_absolute_y_value(true);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for EOR $xxxx, Y. Absolute, Y
+    fn fn_0x59_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_absolute_y_value(false);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for EOR ($xx, X). Indirect, X
+    fn fn_0x41(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_indirect_x_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 6)
+    }
+
+    /// Function call for EOR ($xx), Y. Indirect, Y
+    fn fn_0x51(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_indirect_y_value(false);
+        self.set_flags_nz(self.accumulator);
+        (2, 5)
+    }
+
+    /// Function call for EOR ($xx), Y. Indirect, Y
+    fn fn_0x51_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        self.accumulator ^= self.get_indirect_y_value(true);
+        self.set_flags_nz(self.accumulator);
+        (2, 5)
+    }
+
+    /// Function call for CLC. Implied
+    /// Clear carry flag
+    fn fn_0x18(&mut self) -> (u16, u32) {
+        self.carry = false;
+        (1, 2)
+    }
+
+    /// Function call for SEC. Implied
+    /// Set carry flag
+    fn fn_0x38(&mut self) -> (u16, u32) {
+        self.carry = true;
+        (1, 2)
+    }
+
+    /// Function call for CLI. Implied
+    /// Clear interrupt flag
+    fn fn_0x58(&mut self) -> (u16, u32) {
+        self.interrupt = false;
+        (1, 2)
+    }
+
+    /// Function call for SEI. Implied
+    /// Set interrupt flag
+    fn fn_0x78(&mut self) -> (u16, u32) {
+        self.interrupt = true;
+        (1, 2)
+    }
+
+    /// Function call for CLV. Implied
+    /// Clear overflow flag
+    fn fn_0xb8(&mut self) -> (u16, u32) {
+        self.overflow = false;
+        (1, 2)
+    }
+
+    /// Function call for CLD. Implied
+    /// Clear decimal flag
+    fn fn_0xd8(&mut self) -> (u16, u32) {
+        self.decimal = false;
+        (1, 2)
+    }
+
+    /// Function call for SED. Implied
+    /// Set decimal flag
+    fn fn_0xf8(&mut self) -> (u16, u32) {
+        self.decimal = true;
+        (1, 2)
+    }
+
+    /// Function call for INC $xx. Zero Page
+    fn fn_0xe6(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_value();
+        let value = value + 1;
+        self.set_zero_page(value);
+        self.set_flags_nz(value);
+        (2, 5)
+    }
+
+    /// Function call for INC $xx, X. Zero Page, X
+    fn fn_0xf6(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_x_value();
+        let value = value + 1;
+        self.set_zero_page_x(value);
+        self.set_flags_nz(value);
+        (2, 6)
+    }
+
+    /// Function call for INC $xxxx. Absolute
+    fn fn_0xee(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_value();
+        let value = value + 1;
+        self.set_absolute(value);
+        self.set_flags_nz(value);
+        (3, 6)
+    }
+
+    /// Function call for INC $xxxx, X. Absolute, X
+    fn fn_0xfe(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_x_value(true);
+        let value = value + 1;
+        self.set_absolute_x(value, true);
+        self.set_flags_nz(value);
+        (3, 7)
+    }
+
+    /// Function call for JMP $xxxx. Absolute
+    fn fn_0x4c(&mut self) -> (u16, u32) {
+        self.program_counter = self.get_absolute_address();
+        (0, 3)
+    }
+
+    /// Function call for JMP ($xxxx). Indirect
+    fn fn_0x6c(&mut self) -> (u16, u32) {
+        let mut address = self.get_absolute_address();
+        if address & 0xFF == 0xFF {
+            // Strange behaviour in nestest.nes where direct jump to re-aligned address where address at end of page
+            address = address + 1;
+        } else {
+            address = self.memory.borrow_mut().read_rom_16(address);
+        }
+        self.program_counter = address;
+        (0, 5)
+    }
+
+    /// Function call for JSR $xxxx. Absolute
+    fn fn_0x20(&mut self) -> (u16, u32) {
+        let program_counter = self.program_counter + 2;
+        let high = (program_counter >> 8) as u8;
+        let low = (program_counter & 255) as u8;
+        self.push(high); // little endian
+        self.push(low);
+        self.program_counter = self.get_absolute_address();
+        (0, 6)
+    }
+
+    /// Function call for LDA #$xx. Immediate
+    fn fn_0xa9(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_immediate();
+        self.set_flags_nz(self.accumulator);
+        (2, 2)
+    }
+
+    /// Function call for LDA $xx. Zero Page
+    fn fn_0xa5(&mut self) -> (u16, u32) {
+        self.accumulator =self.get_zero_page_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 3)
+    }
+
+    /// Function call for LDA $xx, X. Zero Page, X
+    fn fn_0xb5(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_zero_page_x_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 4)
+    }
+
+    /// Function call for LDA $xxxx. Absolute
+    fn fn_0xad(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_absolute_value();
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for LDA $xxxx, X. Absolute, X
+    fn fn_0xbd(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_absolute_x_value(true);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for LDA $xxxx, Y. Absolute, Y
+    fn fn_0xb9(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_absolute_y_value(true);
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for LDA ($xx, X). Indirect, X
+    fn fn_0xa1(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_indirect_x_value();
+        self.set_flags_nz(self.accumulator);
+        (2, 6)
+    }
+
+    /// Function call for LDA ($xx), Y. Indirect, Y
+    fn fn_0xb1(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_indirect_y_value(true);
+        self.set_flags_nz(self.accumulator);
+        (2, 5)
+    }
+
+    /// Function call for LDX #$xx. Immediate
+    fn fn_0xa2(&mut self) -> (u16, u32) {
+        self.x_register = self.get_immediate();
+        self.set_flags_nz(self.x_register);
+        (2, 2)
+    }
+
+    /// Function call for LDX $xx. Zero Page
+    fn fn_0xa6(&mut self) -> (u16, u32) {
+        self.x_register = self.get_zero_page_value();
+        self.set_flags_nz(self.x_register);
+        (2, 3)
+    }
+
+    /// Function call for LDX $xx, Y. Zero Page, Y
+    fn fn_0xb6(&mut self) -> (u16, u32) {
+        self.x_register = self.get_zero_page_y_value();
+        self.set_flags_nz(self.x_register);
+        (2, 4)
+    }
+
+    /// Function call for LDX $xxxx. Absolute
+    fn fn_0xae(&mut self) -> (u16, u32) {
+        self.x_register = self.get_absolute_value();
+        self.set_flags_nz(self.x_register);
+        (3, 4)
+    }
+
+    /// Function call for LDX $xxxx, Y. Absolute, Y
+    fn fn_0xbe(&mut self) -> (u16, u32) {
+        self.x_register = self.get_absolute_y_value(true);
+        self.set_flags_nz(self.x_register);
+        (3, 4)
+    }
+
+    /// Function call for LDY #$xx. Immediate
+    fn fn_0xa0(&mut self) -> (u16, u32) {
+        self.y_register = self.get_immediate();
+        self.set_flags_nz(self.y_register);
+        (2, 2)
+    }
+
+    /// Function call for LDY $xx. Zero Page
+    fn fn_0xa4(&mut self) -> (u16, u32) {
+        self.y_register = self.get_zero_page_value();
+        self.set_flags_nz(self.x_register);
+        (2, 3)
+    }
+
+    /// Function call for LDY $xx, X. Zero Page, X
+    fn fn_0xb4(&mut self) -> (u16, u32) {
+        self.y_register = self.get_zero_page_x_value();
+        self.set_flags_nz(self.y_register);
+        (2, 4)
+    }
+
+    /// Function call for LDY $xxxx. Absolute(&mut self)
+    fn fn_0xac(&mut self) -> (u16, u32) {
+        self.y_register =self.get_absolute_value();
+        self.set_flags_nz(self.y_register);
+        (3, 4)
+    }
+
+    /// Function call for LDY $xxxx, X. Absolute, X
+    fn fn_0xbc(&mut self) -> (u16, u32) {
+        self.y_register = self.get_absolute_x_value(true);
+        self.set_flags_nz(self.y_register);
+        (3, 4)
+    }
+
+    /// Function call for LSR. Accumulator
+    fn fn_0x4a(&mut self) -> (u16, u32) {
+        self.carry = self.accumulator == 1;
+        self.accumulator = self.accumulator >> 1;
+        self.set_flags_nz(self.accumulator);
+        (1, 2)
+    }
+
+    /// Function call for LSR $xx. Zero Page
+    fn fn_0x46(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_value();
+        self.carry = value == 1;
+        let value = value >> 1;
+        self.set_zero_page(value);
+        self.set_flags_nz(value);
+        (2, 5)
+    }
+
+    /// Function call for LSR $xx, X. Zero Page, X
+    fn fn_0x56(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_x_value();
+        self.carry = value == 1;
+        let value = value >> 1;
+        self.set_zero_page_x(value);
+        self.set_flags_nz(value);
+        (2, 6)
+    }
+
+    /// Function call for LSR $xxxx. Absolute
+    fn fn_0x4e(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_value();
+        self.carry = value == 1;
+        let value = value >> 1;
+        self.set_absolute(value);
+        self.set_flags_nz(value);
+        (3, 6)
+    }
+
+    /// Function call for LSR $xxxx, X. Absolute, X
+    fn fn_0x5e(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_x_value(true);
+        self.carry = value == 1;
+        let value = value >> 1;
+        self.set_absolute_x(value, true);
+        self.set_flags_nz(value);
+        (3, 7)
+    }
+
+    /// General implementation for sbc operation
+    ///
+    /// SBC is the same as ADC with two's complement on second operand
+    fn sbc(&mut self, value: u8) {
+        self.adc(255 - value)
     }
 }
