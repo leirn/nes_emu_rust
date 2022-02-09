@@ -118,6 +118,19 @@ impl Cpu {
         self.instructions.insert(0xc0, Cpu::fn_0xc0);
         self.instructions.insert(0xc4, Cpu::fn_0xc4);
         self.instructions.insert(0xcc, Cpu::fn_0xcc);
+        // DEC
+        self.instructions.insert(0xc6, Cpu::fn_0xc6);
+        self.instructions.insert(0xd6, Cpu::fn_0xd6);
+        self.instructions.insert(0xce, Cpu::fn_0xce);
+        self.instructions.insert(0xde, Cpu::fn_0xde);
+        // DCP
+        self.instructions.insert(0xc7, Cpu::fn_0xc7);
+        self.instructions.insert(0xd7, Cpu::fn_0xd7);
+        self.instructions.insert(0xcf, Cpu::fn_0xcf);
+        self.instructions.insert(0xdf, Cpu::fn_0xdf);
+        self.instructions.insert(0xdb, Cpu::fn_0xdb);
+        self.instructions.insert(0xc3, Cpu::fn_0xc3);
+        self.instructions.insert(0xd3, Cpu::fn_0xd3);
     }
 
     /// Dummy function to temporarly load the instruction array
@@ -915,5 +928,104 @@ impl Cpu {
         let absolute = self.get_absolute_value();
         self.cmp(self.y_register, absolute);
         (3, 4)
+    }
+
+    /// Function call for DEC $xx. Zero Page
+    fn fn_0xc6(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_value();
+        let value = value - 1;
+        self.set_zero_page(value);
+        self.set_flags_nz(value);
+        (2, 5)
+    }
+
+    /// Function call for DEC $xx, X. Zero Page, X
+    fn fn_0xd6(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_x_value();
+        let value = value - 1;
+        self.set_zero_page_x(value);
+        self.set_flags_nz(value);
+        (2, 6)
+    }
+
+    /// Function call for DEC $xxxx. Absolute
+    fn fn_0xce(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_value();
+        let value = value - 1;
+        self.set_absolute(value);
+        self.set_flags_nz(value);
+        (3, 6)
+    }
+
+    /// Function call for DEC $xxxx, X. Absolute, X
+    fn fn_0xde(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_x_value(true);
+        let value = value - 1;
+        self.set_absolute_x(value, true);
+        self.set_flags_nz(value);
+        (3, 7)
+    }
+
+    /// Function call for DCP $xx. Zero Page
+    fn fn_0xc7(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_value();
+        let value = value - 1;
+        self.set_zero_page(value);
+        self.cmp(self.accumulator, value);
+        (2, 5)
+    }
+
+    /// Function call for DCP $xx, X. Zero Page, X
+    fn fn_0xd7(&mut self) -> (u16, u32) {
+        let value = self.get_zero_page_x_value();
+        let value = value - 1;
+        self.set_zero_page_x(value);
+        self.cmp(self.accumulator, value);
+        (2, 6)
+    }
+
+    /// Function call for DCP $xxxx. Absolute
+    fn fn_0xcf(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_value();
+        let value = value - 1;
+        self.set_absolute(value);
+        self.cmp(self.accumulator, value);
+        (3, 6)
+    }
+
+    /// Function call for DCP $xxxx, X. Absolute, X
+    fn fn_0xdf(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_x_value(false);
+        let value = value - 1;
+        self.set_absolute_x(value, false);
+        self.cmp(self.accumulator, value);
+        (3, 7)
+    }
+
+    /// Function call for DCP $xxxx, Y. Absolute, Y
+    fn fn_0xdb(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_y_value(false);
+        let value = value - 1;
+        self.set_absolute_y(value, false);
+        self.cmp(self.accumulator, value);
+        (3, 7)
+    }
+
+    /// Function call for DCP ($xx, X). Indirect, X
+    fn fn_0xc3(&mut self) -> (u16, u32) {
+        let value = self.get_indirect_x_value();
+        let value = value - 1;
+        self.set_indirect_x(value);
+        self.cmp(self.accumulator, value);
+        (2, 8)
+    }
+
+    /// Function call for DCP ($xx), Y. Indirect, Y
+    fn fn_0xd3(&mut self) -> (u16, u32) {
+        let value = self.get_indirect_y_value(false);
+        let value = value - 1;
+        self.set_indirect_y(value, false);
+        self.cmp(self.accumulator, value);
+        (2, 8)
     }
 }
