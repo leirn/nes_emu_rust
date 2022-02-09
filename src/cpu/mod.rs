@@ -192,6 +192,39 @@ impl Cpu {
         self.instructions.insert(0x56, Cpu::fn_0x56);
         self.instructions.insert(0x4e, Cpu::fn_0x4e);
         self.instructions.insert(0x5e, Cpu::fn_0x5e);
+        // NOP
+        self.instructions.insert(0xea, Cpu::fn_0xea);
+        self.instructions.insert(0x1a, Cpu::fn_0x1a);
+        self.instructions.insert(0x3a, Cpu::fn_0x3a);
+        self.instructions.insert(0x5a, Cpu::fn_0x5a);
+        self.instructions.insert(0x7a, Cpu::fn_0x7a);
+        self.instructions.insert(0xda, Cpu::fn_0xda);
+        self.instructions.insert(0xfa, Cpu::fn_0xfa);
+        // DOP
+        self.instructions.insert(0x04, Cpu::fn_0x04);
+        self.instructions.insert(0x14, Cpu::fn_0x14);
+        self.instructions.insert(0x34, Cpu::fn_0x34);
+        self.instructions.insert(0x44, Cpu::fn_0x44);
+        self.instructions.insert(0x54, Cpu::fn_0x54);
+        self.instructions.insert(0x64, Cpu::fn_0x64);
+        self.instructions.insert(0x74, Cpu::fn_0x74);
+        self.instructions.insert(0x80, Cpu::fn_0x80);
+        self.instructions.insert(0x82, Cpu::fn_0x82);
+        self.instructions.insert(0x89, Cpu::fn_0x89);
+        self.instructions.insert(0xc2, Cpu::fn_0xc2);
+        self.instructions.insert(0xd4, Cpu::fn_0xd4);
+        self.instructions.insert(0xe2, Cpu::fn_0xe2);
+        self.instructions.insert(0xf4, Cpu::fn_0xf4);
+        // TOP
+        self.instructions.insert(0x0c, Cpu::fn_0x0c);
+        self.instructions.insert(0x1c, Cpu::fn_0x1c);
+        self.instructions.insert(0x3c, Cpu::fn_0x3c);
+        self.instructions.insert(0x4c, Cpu::fn_0x4c);
+        self.instructions.insert(0x5c, Cpu::fn_0x5c);
+        self.instructions.insert(0x6c, Cpu::fn_0x6c);
+        self.instructions.insert(0x7c, Cpu::fn_0x7c);
+        self.instructions.insert(0xdc, Cpu::fn_0xdc);
+        self.instructions.insert(0xfc, Cpu::fn_0xfc);
     }
 
     /// Dummy function to temporarly load the instruction array
@@ -1517,6 +1550,173 @@ impl Cpu {
         self.set_absolute_x(value, true);
         self.set_flags_nz(value);
         (3, 7)
+    }
+
+    /// Function call for NOP. Implied
+    fn fn_0xea(&mut self) -> (u16, u32) {
+        (1, 2)
+    }
+
+    /// Function call for NOP. Implied
+    fn fn_0x1a(&mut self) -> (u16, u32) {
+        (1, 2)
+    }
+
+    /// Function call for NOP. Implied
+    fn fn_0x3a(&mut self) -> (u16, u32) {
+        (1, 2)
+    }
+
+    /// Function call for NOP. Implied
+    fn fn_0x5a(&mut self) -> (u16, u32) {
+        (1, 2)
+    }
+
+    /// Function call for NOP. Implied
+    fn fn_0x7a(&mut self) -> (u16, u32) {
+        (1, 2)
+    }
+
+    /// Function call for NOP. Implied
+    fn fn_0xda(&mut self) -> (u16, u32) {
+        (1, 2)
+    }
+
+    /// Function call for NOP. Implied
+    fn fn_0xfa(&mut self) -> (u16, u32) {
+        (1, 2)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x04(&mut self) -> (u16, u32) {
+        (2, 3)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x14(&mut self) -> (u16, u32) {
+        (2, 4)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x34(&mut self) -> (u16, u32) {
+        (2, 4)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x44(&mut self) -> (u16, u32) {
+        (2, 3)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x54(&mut self) -> (u16, u32) {
+        (2, 4)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x64(&mut self) -> (u16, u32) {
+        (2, 3)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x74(&mut self) -> (u16, u32) {
+        (2, 4)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x80(&mut self) -> (u16, u32) {
+        (2, 2)
+    }
+
+    /// Function call for DOP. Implied
+    ///Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x82(&mut self) -> (u16, u32) {
+        (2, 2)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0x89(&mut self) -> (u16, u32) {
+        (2, 2)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0xc2(&mut self) -> (u16, u32) {
+        (2, 2)
+    }
+
+    /// Function call for DOP. Implied
+    ///Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0xd4(&mut self) -> (u16, u32) {
+        (2, 4)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0xe2(&mut self) -> (u16, u32) {
+        (2, 2)
+    }
+
+    /// Function call for DOP. Implied
+    /// Equivalent to NOP NOP (2-byte NOP)
+    fn fn_0xf4(&mut self) -> (u16, u32) {
+        (2, 4)
+    }
+
+    /// Function call for TOP. Implied
+    ///Equivalent to NOP NOP NOP (3-byte NOP)
+    fn fn_0x0c(&mut self) -> (u16, u32) {
+        (3, 4)
+    }
+
+    /// Function call for TOP. Implied
+    /// Equivalent to NOP NOP NOP (3-byte NOP)
+    fn fn_0x1c(&mut self) -> (u16, u32) {
+        self.get_absolute_x_value(true); // Need extra cycle
+        (3, 4)
+    }
+
+    /// Function call for TOP. Implied
+    ///Equivalent to NOP NOP NOP (3-byte NOP)
+    fn fn_0x3c(&mut self) -> (u16, u32) {
+        self.get_absolute_x_value(true); // Need extra cycle
+        (3, 4)
+    }
+
+    /// Function call for TOP. Implied
+    ///Equivalent to NOP NOP NOP (3-byte NOP)
+    fn fn_0x5c(&mut self) -> (u16, u32) {
+        self.get_absolute_x_value(true); // Need extra cycle
+        (3, 4)
+    }
+
+    /// Function call for TOP. Implied
+    ///Equivalent to NOP NOP NOP (3-byte NOP)
+    fn fn_0x7c(&mut self) -> (u16, u32) {
+        self.get_absolute_x_value(true); // Need extra cycle
+        (3, 4)
+    }
+
+    /// Function call for TOP. Implied
+    /// Equivalent to NOP NOP NOP (3-byte NOP)
+    fn fn_0xdc(&mut self) -> (u16, u32) {
+        self.get_absolute_x_value(true); // Need extra cycle
+        (3, 4)
+    }
+
+    /// Function call for TOP. Implied
+    ///Equivalent to NOP NOP NOP (3-byte NOP)
+    fn fn_0xfc(&mut self) -> (u16, u32) {
+        self.get_absolute_x_value(true); // Need extra cycle
+        (3, 4)
     }
 
     /// General implementation for sbc operation
