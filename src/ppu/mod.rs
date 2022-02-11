@@ -43,9 +43,6 @@ pub struct Ppu {
     palette_vram: [u8; 0x20],
 }
 
-unsafe impl Sync for Ppu {}
-unsafe impl Send for Ppu {}
-
 impl Ppu {
     /// Instantiate the PPU
     pub fn new(cartridge: Rc<RefCell<Cartridge>>, sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Ppu {
