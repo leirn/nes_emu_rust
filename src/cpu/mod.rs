@@ -277,6 +277,21 @@ impl Cpu {
         self.instructions.insert(0x98, Cpu::fn_0x98);
         self.instructions.insert(0x88, Cpu::fn_0x88);
         self.instructions.insert(0xc8, Cpu::fn_0xc8);
+        // ROL
+        self.instructions.insert(0x2a, Cpu::fn_0x2a);
+        self.instructions.insert(0x26, Cpu::fn_0x26);
+        self.instructions.insert(0x36, Cpu::fn_0x36);
+        self.instructions.insert(0x2e, Cpu::fn_0x2e);
+        self.instructions.insert(0x3e, Cpu::fn_0x3e);
+        // ROR
+        self.instructions.insert(0x6a, Cpu::fn_0x6a);
+        self.instructions.insert(0x66, Cpu::fn_0x66);
+        self.instructions.insert(0x76, Cpu::fn_0x76);
+        self.instructions.insert(0x6e, Cpu::fn_0x6e);
+        self.instructions.insert(0x7e, Cpu::fn_0x7e);
+        // RTS / RTI
+        self.instructions.insert(0x40, Cpu::fn_0x40);
+        self.instructions.insert(0x60, Cpu::fn_0x60);
     }
 
     /// Dummy function to temporarly load the instruction array
@@ -2233,6 +2248,151 @@ impl Cpu {
         self.y_register = self.y_register + 1;
         self.set_flags_nz(self.y_register);
         (1, 2)
+    }
+
+    /// Function call for ROL A. Accumulator
+    fn fn_0x2a(&mut self) -> (u16, u32) {
+        self.accumulator = (self.accumulator << 1) | (self.carry as u8);
+        self.carry = (self.accumulator >> 8) != 0;
+        self.accumulator &= 255;
+        self.set_flags_nz(self.accumulator);
+        (1, 2)
+    }
+
+    /// Function call for ROL $xx. Zero Page
+    fn fn_0x26(&mut self) -> (u16, u32) {
+        let val = self.get_zero_page_value();
+        let val = (val << 1) | (self.carry as u8);
+        self.carry = (val >> 8) != 0;;
+        let val &= 255;
+        self.set_zero_page(val);
+        self.set_flags_nz(val);
+        (2, 5)
+    }
+
+    /// Function call for ROL $xx, X. Zero Page, X
+    fn fn_0x36(&mut self) -> (u16, u32) {
+        let val = self.get_zero_page_x_value();
+        let val = (val << 1) | (self.carry as u8);
+        self.carry = (val >> 8) != 0;
+        let val &= 255;
+        self.set_zero_page_x(val);
+        self.set_flags_nz(val);
+        (2, 6)
+    }
+
+    /// Function call for ROL $xxxx. Absolute
+    fn fn_0x2e(&mut self) -> (u16, u32) {
+        let val = self.get_absolute_value();
+        let val = (val << 1) | (self.carry as u8);
+        self.carry = (val >> 8) != 0;
+        let val &= 255;
+        self.set_absolute(val);
+        self.set_flags_nz(val);
+        (3, 6)
+    }
+
+    /// Function call for ROL $xxxx, X. Absolute, X
+    fn fn_0x3e(&mut self) -> (u16, u32) {
+        let val = self.get_absolute_x_value(true);
+        let val = (val << 1) | (self.carry as u8);
+        self.carry = (val >> 8) != 0;
+        let val &= 255;
+        self.set_absolute_x(val, true);
+        self.set_flags_nz(val);
+        (3, 7)
+    }
+
+    /// Function call for ROL $xxxx, X. Absolute, X
+    fn fn_0x3e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        let val = self.get_absolute_x_value(false);
+        let val = (val << 1) | (self.carry as u8);
+        self.carry = (val >> 8) != 0;
+        let val &= 255;
+        self.set_absolute_x(val, false);
+        self.set_flags_nz(val);
+        (3, 7)
+    }
+
+    /// Function call for ROR A. Accumulator
+    fn fn_0x6a(&mut self) -> (u16, u32) {
+        let carry = self.accumulator & 1;
+        self.accumulator = (self.accumulator >> 1) | (self.carry as u8 << 7);
+        self.carry = carry != 0;
+        self.set_flags_nz(self.accumulator);
+        (1, 2)
+    }
+
+    /// Function call for ROR $xx. Zero Page
+    fn fn_0x66(&mut self) -> (u16, u32) {
+        let val = self.get_zero_page_value();
+        let carry = val & 1;
+        let val = (val >> 1) | (self.carry as u8 << 7);
+        self.carry = carry != 0;
+        self.set_zero_page(val);
+        self.set_flags_nz(val);
+        (2, 5)
+    }
+
+    /// Function call for ROR $xx, X. Zero Page, X
+    fn fn_0x76(&mut self) -> (u16, u32) {
+        let val = self.get_zero_page_x_value();
+        let carry = val & 1;
+        let val = (val >> 1) | (self.carry as u8 << 7);
+        self.carry = carry != 0;
+        self.set_zero_page_x(val);
+        self.set_flags_nz(val);
+        (2, 6)
+    }
+
+    /// Function call for ROR $xxxx. Absolute
+    fn fn_0x6e(&mut self) -> (u16, u32) {
+        let val = self.get_absolute_value();
+        let carry = val & 1;
+        let val = (val >> 1) | (self.carry as u8 << 7);
+        self.carry = carry != 0;
+        self.set_absolute(val);
+        self.set_flags_nz(val);
+        (3, 6)
+    }
+
+    /// Function call for ROR$xxxx, X. Absolute, X
+    fn fn_0x7e(&mut self) -> (u16, u32) {
+        let val = self.get_absolute_x_value(true);
+        let carry = val & 1;
+        let val = (val >> 1) | (self.carry as u8 << 7);
+        self.carry = carry != 0;
+        self.set_absolute_x(val, true);
+        self.set_flags_nz(val);
+        (3, 7)
+    }
+
+    /// Function call for ROR$xxxx, X. Absolute, X
+    fn fn_0x7e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        let val = self.get_absolute_x_value(false);
+        let carry = val & 1;
+        let val = (val >> 1) | (self.carry as u8 << 7);
+        self.carry = carry != 0;
+        self.set_absolute_x(val, false);
+        self.set_flags_nz(val);
+        (3, 7)
+    }
+
+    /// Function call for RTI. Implied
+    fn fn_0x40(&mut self) -> (u16, u32) {
+        self.set_status_register(self.pop());
+        let low = self.pop() as u16;
+        let high = self.pop() as u16;
+        self.program_counter = (high << 8) + low;
+        (0, 6)
+    }
+
+    /// Function call for RTS. Implied
+    fn fn_0x60(&mut self) -> (u16, u32) {
+        let low = self.pop() as u16;
+        let high = self.pop() as u16;
+        self.program_counter = (high << 8) + low + 1; // JSR increment only by two, and RTS add the third
+        (0, 6)
     }
 
     /// General implementation for sbc operation
