@@ -1819,7 +1819,7 @@ impl Cpu {
     /// Equivalent to:
     ///     ASL
     ///     ORA
-    fn fn_0x07(&mut self):
+    fn fn_0x07(&mut self) -> (u16, u32) {
         self.fn_0x06(); // ASL
         self.fn_0x05(); // ORA
         (2, 5)
@@ -1829,7 +1829,7 @@ impl Cpu {
     /// Equivalent to:
     ///     ASL
     ///     ORA
-    fn fn_0x17(&mut self):
+    fn fn_0x17(&mut self) -> (u16, u32) {
         self.fn_0x16(); // ASL
         self.fn_0x15(); // ORA
         (2, 6)
@@ -1839,7 +1839,7 @@ impl Cpu {
     /// Equivalent to:
     ///     ASL
     ///     ORA
-    fn fn_0x0f(&mut self):
+    fn fn_0x0f(&mut self) -> (u16, u32) {
         self.fn_0x0e(); // ASL
         self.fn_0x0d(); // ORA
         (3, 6)
@@ -1849,7 +1849,7 @@ impl Cpu {
     /// Equivalent to:
     ///     ASL
     ///     ORA
-    fn fn_0x1f(&mut self):
+    fn fn_0x1f(&mut self) -> (u16, u32) {
         self.fn_0x1e_with_no_additionnal_cycles(); // ASL
         self.fn_0x1d_with_no_additionnal_cycles(); // ORA
         (3, 7)
@@ -1859,7 +1859,7 @@ impl Cpu {
     /// Equivalent to:
     ///     ASL
     ///     ORA
-    fn fn_0x1b(&mut self):
+    fn fn_0x1b(&mut self) -> (u16, u32) {
         value = self.get_absolute_y_value(false);
         self.carry = value >> 7;
         value = (value << 1) & 0b11111111;
@@ -1872,7 +1872,7 @@ impl Cpu {
     /// Equivalent to:
     ///     ASL
     ///     ORA
-    fn fn_0x03(&mut self):
+    fn fn_0x03(&mut self) -> (u16, u32) {
         value = self.get_indirect_x_value();
         self.carry = value >> 7;
         value = (value << 1) & 0b11111111;
@@ -1885,7 +1885,7 @@ impl Cpu {
     /// Equivalent to:
     ///     ASL
     ///     ORA
-    fn fn_0x13(&mut self):
+    fn fn_0x13(&mut self) -> (u16, u32) {
         value = self.get_indirect_y_value(false);
         self.carry = value >> 7;
         value = (value << 1) & 0b11111111;
@@ -1893,6 +1893,169 @@ impl Cpu {
         self.fn_0x11_with_no_additionnal_cycles(); // ORA
         (2, 8)
     }
+
+    /// Function call for RLA $xx. Zero Page
+    /// Equivalent to:
+    ///     ROL
+    ///     AND
+    fn fn_0x27(&mut self) -> (u16, u32) {
+        self.fn_0x26(); // ROL
+        self.fn_0x25(); // AND
+        (2, 5)
+    }
+
+    /// Function call for RLA $xx, X. Zero Page, X
+    /// Equivalent to:
+    ///     ROL
+    ///     AND
+    fn fn_0x37(&mut self) -> (u16, u32) {
+        self.fn_0x36(); // ROL
+        self.fn_0x35(); // AND
+        (2, 6)
+    }
+
+    /// Function call for for RLA $xxxx. Absolute
+    /// Equivalent to:
+    ///     ROL
+    ///     AND
+    fn fn_0x2f(&mut self) -> (u16, u32) {
+        self.fn_0x2e(); // ROL
+        self.fn_0x2d(); // AND
+        (3, 6)
+    }
+
+    /// Function call for RLA $xxxx, X. Absolute, X
+    /// Equivalent to:
+    ///     ROL
+    ///     AND
+    fn fn_0x3f(&mut self) -> (u16, u32) {
+        self.fn_0x3e_with_no_additionnal_cycles(); // ROL
+        self.fn_0x3d_with_no_additionnal_cycles(); // AND
+        (3, 7)
+    }
+
+    /// Function call for RLA $xxxx, Y. Absolute, Y
+    /// Equivalent to:
+    ///     ROL
+    ///     AND
+    fn fn_0x3b(&mut self) -> (u16, u32) {
+        let val = self.get_absolute_y_value(false);
+        let val = (val << 1) | (self.carry as u8);
+        self.carry = (val >> 8) != 0;
+        let val &= 255;
+        self.set_absolute_y(val, false);
+        self.fn_0x39_with_no_additionnal_cycles(); // AND
+        (3, 7)
+    }
+
+    /// Function call for RLA ($xx, X). Indirect, X
+    /// Equivalent to:
+    ///     ROL
+    ///     AND
+    fn fn_0x23(&mut self) -> (u16, u32) {
+        let val = self.get_indirect_x_value();
+        let val = (val << 1) | (self.carry as u8);
+        self.carry = (val >> 8) != 0;
+        let val &= 255;
+        self.set_indirect_x(val);
+        self.fn_0x21(); // AND
+        (2, 8)
+    }
+
+    /// Function call for RLA ($xx), Y. Indirect, Y
+    /// Equivalent to:
+    ///     ROL
+    ///     AND
+    fn fn_0x33(&mut self) -> (u16, u32)
+        let val = self.get_indirect_y_value(false);
+        let val = (val << 1) | (self.carry as u8);
+        self.carry = (val >> 8) != 0;
+        let val &= 255;
+        self.set_indirect_y(val, false);
+        self.fn_0x31_with_no_additionnal_cycles(); // AND
+        (2, 8)
+    }
+
+    /// Function call for RRA $xx. Zero Page
+    /// Equivalent to:
+    ///     ROR
+    ///     AND
+    fn fn_0x67(&mut self) -> (u16, u32) {
+        self.fn_0x66(); // ROR
+        self.fn_0x65(); // ADC
+        (2, 5)
+    }
+
+    /// Function call for RRA $xx, X. Zero Page, X
+    /// Equivalent to:
+    ///     ROR
+    ///     AND
+    fn fn_0x77(&mut self) -> (u16, u32) {
+        self.fn_0x76(); // ROR
+        self.fn_0x75(); // ADC
+        (2, 6)
+    }
+
+    /// Function call for RRA $xxxx. Absolute
+    /// Equivalent to:
+    ///     ROR
+    ///     AND
+    fn fn_0x6f(&mut self) -> (u16, u32) {
+        self.fn_0x6e(); // ROR
+        self.fn_0x6d(); // ADC
+        (3, 6)
+    }
+
+    /// Function call for RRA $xxxx, X. Absolute, X
+    /// Equivalent to:
+    ///     ROR
+    ///     AND
+    fn fn_0x7f(&mut self) -> (u16, u32) {
+        self.fn_0x7e_with_no_additionnal_cycles(); // ROR
+        self.fn_0x7d_with_no_additionnal_cycles(); // ADC
+        (3, 7)
+
+        /// Function call for RRA $xxxx, Y. Absolute, Y
+        /// Equivalent to:
+        ///     ROR
+        ///     AND
+    fn fn_0x7b(&mut self) -> (u16, u32) {
+        let val = self.get_absolute_y_value(false);
+        let carry = val & 1;
+        let val = (val >> 1) | (self.carry as u8 << 7);
+        self.carry = carry != 0;
+        self.set_absolute_y(val, false);
+        self.fn_0x79_with_no_additionnal_cycles(); // ADC
+        (3, 7)
+    }
+
+    /// Function call for RRA ($xx, X). Indirect, X
+    /// Equivalent to:
+    ///     ROR
+    ///     AND
+    fn fn_0x63(&mut self) -> (u16, u32) {
+        let val = self.get_indirect_x_value();
+        let carry = val & 1;
+        let val = (val >> 1) | (self.carry as u8 << 7);
+        self.carry = carry != 0;
+        self.set_indirect_x(val);
+        self.fn_0x61(); // ADC
+        (2, 8)
+    }
+
+    /// Function call for RRA ($xx), Y. Indirect, Y
+    /// Equivalent to:
+    ///     ROR
+    ///     AND
+    fn fn_0x73(&mut self) -> (u16, u32) {
+        let val = self.get_indirect_y_value(false);
+        let carry = val & 1;
+        let val = (val >> 1) | (self.carry as u8 << 7);
+        self.carry = carry != 0;
+        self.set_indirect_y(val, false);
+        self.fn_0x71_with_no_additionnal_cycles(); // ADC
+        (2, 8)
+
 
     /// General implementation for sbc operation
     ///
