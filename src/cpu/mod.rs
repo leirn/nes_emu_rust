@@ -244,6 +244,39 @@ impl Cpu {
         self.instructions.insert(0x1b, Cpu::fn_0x1b);
         self.instructions.insert(0x03, Cpu::fn_0x03);
         self.instructions.insert(0x13, Cpu::fn_0x13);
+        // RLA
+        self.instructions.insert(0x27, Cpu::fn_0x27);
+        self.instructions.insert(0x37, Cpu::fn_0x37);
+        self.instructions.insert(0x2f, Cpu::fn_0x2f);
+        self.instructions.insert(0x3f, Cpu::fn_0x3f);
+        self.instructions.insert(0x3b, Cpu::fn_0x3b);
+        self.instructions.insert(0x23, Cpu::fn_0x23);
+        self.instructions.insert(0x33, Cpu::fn_0x33);
+        // RRA
+        self.instructions.insert(0x67, Cpu::fn_0x67);
+        self.instructions.insert(0x77, Cpu::fn_0x77);
+        self.instructions.insert(0x6f, Cpu::fn_0x6f);
+        self.instructions.insert(0x7f, Cpu::fn_0x7f);
+        self.instructions.insert(0x7b, Cpu::fn_0x7b);
+        self.instructions.insert(0x63, Cpu::fn_0x63);
+        self.instructions.insert(0x73, Cpu::fn_0x73);
+        // SRE
+        self.instructions.insert(0x47, Cpu::fn_0x47);
+        self.instructions.insert(0x57, Cpu::fn_0x57);
+        self.instructions.insert(0x4f, Cpu::fn_0x4f);
+        self.instructions.insert(0x5f, Cpu::fn_0x5f);
+        self.instructions.insert(0x5b, Cpu::fn_0x5b);
+        self.instructions.insert(0x43, Cpu::fn_0x43);
+        self.instructions.insert(0x53, Cpu::fn_0x53);
+        // Registers operations
+        self.instructions.insert(0xaa, Cpu::fn_0xaa);
+        self.instructions.insert(0x8a, Cpu::fn_0x8a);
+        self.instructions.insert(0xca, Cpu::fn_0xca);
+        self.instructions.insert(0xe8, Cpu::fn_0xe8);
+        self.instructions.insert(0xa8, Cpu::fn_0xa8);
+        self.instructions.insert(0x98, Cpu::fn_0x98);
+        self.instructions.insert(0x88, Cpu::fn_0x88);
+        self.instructions.insert(0xc8, Cpu::fn_0xc8);
     }
 
     /// Dummy function to temporarly load the instruction array
@@ -1571,6 +1604,16 @@ impl Cpu {
         (3, 7)
     }
 
+    /// Function call for LSR $xxxx, X. Absolute, X
+    fn fn_0x5e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
+        let value = self.get_absolute_x_value(false);
+        self.carry = value == 1;
+        let value = value >> 1;
+        self.set_absolute_x(value, false);
+        self.set_flags_nz(value);
+        (3, 7)
+    }
+
     /// Function call for NOP. Implied
     fn fn_0xea(&mut self) -> (u16, u32) {
         (1, 2)
@@ -1861,7 +1904,7 @@ impl Cpu {
     ///     ORA
     fn fn_0x1b(&mut self) -> (u16, u32) {
         value = self.get_absolute_y_value(false);
-        self.carry = value >> 7;
+        self.carry = (value >> 7) != 0;
         value = (value << 1) & 0b11111111;
         self.set_absolute_y(value, false);
         self.fn_0x19_with_no_additionnal_cycles(); // ORA
@@ -1874,7 +1917,7 @@ impl Cpu {
     ///     ORA
     fn fn_0x03(&mut self) -> (u16, u32) {
         value = self.get_indirect_x_value();
-        self.carry = value >> 7;
+        self.carry = (value >> 7) != 0;
         value = (value << 1) & 0b11111111;
         self.set_indirect_x(value);
         self.fn_0x01(); // ORA
@@ -1887,7 +1930,7 @@ impl Cpu {
     ///     ORA
     fn fn_0x13(&mut self) -> (u16, u32) {
         value = self.get_indirect_y_value(false);
-        self.carry = value >> 7;
+        self.carry = (value >> 7) != 0;
         value = (value << 1) & 0b11111111;
         self.set_indirect_y(value, false);
         self.fn_0x11_with_no_additionnal_cycles(); // ORA
@@ -2055,7 +2098,142 @@ impl Cpu {
         self.set_indirect_y(val, false);
         self.fn_0x71_with_no_additionnal_cycles(); // ADC
         (2, 8)
+    }
 
+    /// Function call for SRE $xx. Zero Page
+    /// Equivalent to:
+    ///     LSR
+    ///     EOR
+    fn fn_0x47(&mut self) -> (u16, u32) {
+        self.fn_0x46(); // LSR
+        self.fn_0x45(); // EOR
+        (2, 5)
+    }
+
+    /// Function call for SRE $xx, X. Zero Page, X
+    /// Equivalent to:
+    ///     LSR
+    ///     EOR
+    fn fn_0x57(&mut self) -> (u16, u32) {
+        self.fn_0x56(); // LSR
+        self.fn_0x55(); // EOR
+        (2, 6)
+    }
+
+    /// Function call for SRE $xxxx. Absolute
+    /// Equivalent to:
+    ///     LSR
+    ///     EOR
+    fn fn_0x4f(&mut self) -> (u16, u32) {
+        self.fn_0x4e(); // LSR
+        self.fn_0x4d(); // EOR
+        (3, 6)
+    }
+
+    /// Function call for SRE $xxxx, X. Absolute, X
+    /// Equivalent to:
+    ///     LSR
+    ///     EOR
+    fn fn_0x5f(&mut self) -> (u16, u32) {
+        self.fn_0x5e_with_no_additionnal_cycles(); // LSR
+        self.fn_0x5d_with_no_additionnal_cycles(); // EOR
+        (3, 7)
+    }
+
+    /// Function call for SRE $xx. Zero Page
+    /// Equivalent to:
+    ///     LSR
+    ///     EOR
+    fn fn_0x5b(&mut self) -> (u16, u32) {
+        let val = self.get_absolute_y_value(false);
+        self.carry = (val & 1) != 0;
+        let val = val >> 1;
+        self.set_absolute_y(val, false);
+        self.fn_0x59_with_no_additionnal_cycles(); // EOR
+        (3, 7)
+    }
+
+    /// Function call for SRE ($xx, X). Indirect, X
+    /// Equivalent to:
+    ///     LSR
+    ///     EOR
+    fn fn_0x43(&mut self) -> (u16, u32) {
+        let val = self.get_indirect_x_value();
+        self.carry = (val & 1) != 0;
+        let val = val >> 1;
+        self.set_indirect_x(val);
+        self.fn_0x41(); // EOR
+        (2, 8)
+    }
+
+    /// Function call for SRE ($xx), Y. Indirect, Y
+    /// Equivalent to:
+    ///     LSR
+    ///     EOR
+    fn fn_0x53(&mut self) -> (u16, u32) {
+        let val = self.get_indirect_y_value(false);
+        self.carry = (val & 1) != 0;
+        let val = val >> 1;
+        self.set_indirect_y(val, false);
+        self.fn_0x51_with_no_additionnal_cycles(); // EOR
+        (2, 8)
+    }
+
+    /// Function call for TAX. Implied
+    fn fn_0xaa(&mut self) -> (u16, u32) {
+        self.x_register = self.accumulator;
+        self.set_flags_nz(self.x_register);
+        (1, 2)
+    }
+
+    /// Function call for TXA. Implied
+    fn fn_0x8a(&mut self) -> (u16, u32) {
+        self.accumulator = self.x_register;
+        self.set_flags_nz(self.accumulator);
+        (1, 2)
+    }
+
+    /// Function call for DEX. Implied
+    fn fn_0xca(&mut self) -> (u16, u32) {
+        self.x_register = self.x_register - 1;
+        self.set_flags_nz(self.x_register);
+        (1, 2)
+    }
+
+    /// Function call for INX. Implied
+    fn fn_0xe8(&mut self) -> (u16, u32) {
+        self.x_register = self.x_register + 1;
+        self.set_flags_nz(self.x_register);
+        (1, 2)
+    }
+
+    /// Function call for TAY. Implied
+    fn fn_0xa8(&mut self) -> (u16, u32) {
+        self.y_register = self.accumulator;
+        self.set_flags_nz(self.y_register);
+        (1, 2)
+    }
+
+    /// Function call for TYA. Implied
+    fn fn_0x98(&mut self) -> (u16, u32) {
+        self.accumulator = self.y_register;
+        self.set_flags_nz(self.accumulator);
+        (1, 2)
+    }
+
+    /// Function call for DEY. Implied
+    fn fn_0x88(&mut self) -> (u16, u32) {
+        self.y_register = self.y_register - 1;
+        self.set_flags_nz(self.y_register);
+        (1, 2)
+    }
+
+    /// Function call for INY. Implied
+    fn fn_0xc8(&mut self) -> (u16, u32) {
+        self.y_register = self.y_register + 1;
+        self.set_flags_nz(self.y_register);
+        (1, 2)
+    }
 
     /// General implementation for sbc operation
     ///
