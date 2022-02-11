@@ -310,6 +310,33 @@ impl Cpu {
         self.instructions.insert(0x99, Cpu::fn_0x99);
         self.instructions.insert(0x81, Cpu::fn_0x81);
         self.instructions.insert(0x91, Cpu::fn_0x91);
+        // Stack
+        self.instructions.insert(0x9a, Cpu::fn_0x9a);
+        self.instructions.insert(0xba, Cpu::fn_0xba);
+        self.instructions.insert(0x48, Cpu::fn_0x48);
+        self.instructions.insert(0x68, Cpu::fn_0x68);
+        self.instructions.insert(0x08, Cpu::fn_0x08);
+        self.instructions.insert(0x28, Cpu::fn_0x28);
+        // STX
+        self.instructions.insert(0x86, Cpu::fn_0x86);
+        self.instructions.insert(0x96, Cpu::fn_0x96);
+        self.instructions.insert(0x8e, Cpu::fn_0x8e);
+        // STY
+        self.instructions.insert(0x84, Cpu::fn_0x84);
+        self.instructions.insert(0x94, Cpu::fn_0x94);
+        self.instructions.insert(0x8c, Cpu::fn_0x8c);
+        // LAX
+        self.instructions.insert(0xa7, Cpu::fn_0xa7);
+        self.instructions.insert(0xb7, Cpu::fn_0xb7);
+        self.instructions.insert(0xaf, Cpu::fn_0xaf);
+        self.instructions.insert(0xbf, Cpu::fn_0xbf);
+        self.instructions.insert(0xa3, Cpu::fn_0xa3);
+        self.instructions.insert(0xb3, Cpu::fn_0xb3);
+        // SAX
+        self.instructions.insert(0x87, Cpu::fn_0x87);
+        self.instructions.insert(0x97, Cpu::fn_0x97);
+        self.instructions.insert(0x8f, Cpu::fn_0x8f);
+        self.instructions.insert(0x83, Cpu::fn_0x83);
     }
 
     /// Dummy function to temporarly load the instruction array
@@ -2515,5 +2542,164 @@ impl Cpu {
         let address = self.get_indirect_y_address(false); // No additionnal cycles on STA
         let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
         (2, 6 + extra_cycles)
+    }
+
+    /// Function call for TXS. Implied
+    fn fn_0x9a(&mut self) -> (u16, u32) {
+        self.stack_pointer = self.x_register;
+        (1, 2)
+    }
+
+    /// Function call for TSX. Implied
+    fn fn_0xba(&mut self) -> (u16, u32) {
+        self.x_register = self.stack_pointer;
+        self.set_flags_nz(self.x_register);
+        (1, 2)
+    }
+
+    /// Function call for RHA. Implied
+    fn fn_0x48(&mut self) -> (u16, u32) {
+        self.push(self.accumulator);
+        (1, 3)
+    }
+
+    /// Function call for PLA. Implied
+    fn fn_0x68(&mut self) -> (u16, u32) {
+        self.accumulator = self.pop();
+        self.set_flags_nz(self.accumulator);
+        (1, 4)
+    }
+
+    /// Function call for PHP. Implie
+    fn fn_0x08(&mut self) -> (u16, u32) {
+        // create status byte
+        let status_register = self.get_status_register() | (1 << 4);
+        self.push(status_register);
+        (1, 3)
+    }
+
+    /// Function call for PLP. Implied
+    fn fn_0x28(&mut self) -> (u16, u32) {
+        let status_register = self.pop();
+        self.set_status_register(status_register);
+        (1, 4)
+    }
+
+    /// Function call for STX $xx. Zero Page
+    fn fn_0x86(&mut self) -> (u16, u32) {
+        let address = self.get_zero_page_address();
+        self.memory.borrow_mut().write_rom(address, self.x_register);
+        (2, 3)
+    }
+
+    /// Function call for STX $xx, Y. Zero Page, Y
+    fn fn_0x96(&mut self) -> (u16, u32) {
+        let address = self.get_zero_page_y_address();
+        self.memory.borrow_mut().write_rom(address, self.x_register);
+        (2, 4)
+    }
+
+    /// Function call for STX $xxxx. Absolute
+    fn fn_0x8e(&mut self) -> (u16, u32) {
+        let address = self.get_absolute_address();
+        self.memory.borrow_mut().write_rom(address, self.x_register);
+        (3, 4)
+    }
+
+    /// Function call for STY $xx. Zero Page
+    fn fn_0x84(&mut self) -> (u16, u32) {
+        let address = self.get_zero_page_address();
+        self.memory.borrow_mut().write_rom(address, self.y_register);
+        (2, 3)
+    }
+
+    /// Function call for STY $xx, X. Zero Page, X
+    fn fn_0x94(&mut self) -> (u16, u32) {
+        let address = self.get_zero_page_x_address();
+        self.memory.borrow_mut().write_rom(address, self.y_register);
+        (2, 4)
+    }
+
+    /// Function call for STY $xxxx. Absolute
+    fn fn_0x8c(&mut self) -> (u16, u32) {
+        let address = self.get_absolute_address();
+        self.memory.borrow_mut().write_rom(address, self.y_register);
+        (3, 4)
+    }
+
+    /// Function call for LAX $xx. Zero Page
+    fn fn_0xa7(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_zero_page_value();
+        self.x_register = self.accumulator;
+        self.set_flags_nz(self.accumulator);
+        (2, 3)
+    }
+
+    /// Function call for LAX $xx, Y. Zero Page, Y
+    fn fn_0xb7(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_zero_page_y_value();
+        self.x_register = self.accumulator;
+        self.set_flags_nz(self.accumulator);
+        (2, 4)
+    }
+
+    /// Function call for LAX $xxxx. Absolute
+    fn fn_0xaf(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_absolute_value();
+        self.x_register = self.accumulator;
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for LAX $xxxx, Y. Absolute, Y
+    fn fn_0xbf(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_absolute_y_value();
+        self.x_register = self.accumulator;
+        self.set_flags_nz(self.accumulator);
+        (3, 4)
+    }
+
+    /// Function call for LAX ($xx, X). Indirect, X
+    fn fn_0xa3(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_indirect_x_value();
+        self.x_register = self.accumulator;
+        self.set_flags_nz(self.accumulator);
+        (2, 6)
+    }
+
+    /// Function call for LAX ($xx), Y. Indirect, Y
+    fn fn_0xb3(&mut self) -> (u16, u32) {
+        self.accumulator = self.get_indirect_y_value();
+        self.x_register = self.accumulator;
+        self.set_flags_nz(self.accumulator);
+        (2, 5)
+    }
+
+    /// Function call for SAX $xx. Zero Page
+    fn fn_0x87(&mut self) -> (u16, u32) {
+        let val = self.accumulator & self.x_register;
+        self.set_zero_page(val);
+        (2, 3)
+    }
+
+    /// Function call for SAX $xx, Y. Zero Page, Y
+    fn fn_0x97(&mut self) -> (u16, u32) {
+        let val = self.accumulator & self.x_register;
+        self.set_zero_page_y(val);
+        (2, 4)
+    }
+
+    /// Function call for SAX $xxxx. Absolute
+    fn fn_0x8f(&mut self) -> (u16, u32) {
+        let val = self.accumulator & self.x_register;
+        self.set_absolute(val);
+        (3, 4)
+    }
+
+    /// Function call for SAX ($xx, X). Indirect, X
+    fn fn_0x83(&mut self) -> (u16, u32) {
+        let val = self.accumulator & self.x_register:
+        self.set_indirect_x(val):
+        (2, 6)
     }
 }
