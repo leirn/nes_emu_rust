@@ -2,12 +2,15 @@
 mod clock;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::fs::File;
+use std::io::BufReader;
 
 pub struct NesEmulator {
     is_nmi: bool,
     is_irq: bool,
     pause: bool,
     is_frame_updated: bool,
+    is_test_mode: bool,
     pub sdl_context: Rc<RefCell<sdl2::Sdl>>,
     clock: clock::Clock,
     cartridge: Rc<RefCell<crate::cartridge::Cartridge>>,
@@ -15,10 +18,8 @@ pub struct NesEmulator {
     apu: Rc<RefCell<crate::apu::Apu>>,
     ppu: Rc<RefCell<crate::ppu::Ppu>>,
     cpu: Rc<RefCell<crate::cpu::Cpu>>,
+    test_file: Option<BufReader>,
 }
-
-unsafe impl Sync for NesEmulator {}
-unsafe impl Send for NesEmulator {}
 
 impl NesEmulator {
     /// Instantiate the Emulator
@@ -26,7 +27,7 @@ impl NesEmulator {
         let _sdl_context = Rc::new(RefCell::new(sdl2::init().unwrap()));
         println!("SDL Context initialized");
 
-        
+
         let cartridge = Rc::new(RefCell::new(crate::cartridge::Cartridge::new(rom_file)));
         let apu = Rc::new(RefCell::new(crate::apu::Apu::new()));
         let ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(cartridge.clone(), _sdl_context.clone())));
@@ -38,6 +39,7 @@ impl NesEmulator {
             is_irq: false,
             pause: false,
             is_frame_updated: false,
+            is_test_mode: false,
             sdl_context: _sdl_context,
             clock: clock::Clock::new(),
             cartridge: cartridge,
@@ -45,10 +47,11 @@ impl NesEmulator {
             apu: apu,
             ppu: ppu,
             cpu: cpu,
+            test_file: None,
         }
     }
 
-    /// Starts and runs the Emulator execution 
+    /// Starts and runs the Emulator execution
     pub fn start(&mut self) {
         self.ppu.borrow_mut().start();
         self.cpu.borrow_mut().start(None);
@@ -72,7 +75,10 @@ impl NesEmulator {
                 self.ppu.borrow_mut().next();
                 self.ppu.borrow_mut().next();
                 self.ppu.borrow_mut().next();
-                
+
+                if self.is_test_mode and self.cpu.borrow_mut().remaining_cycles == 0:
+                    self.check_test(self.cpu.borrow_mut().get_status(), self.ppu.borrow_mut().get_status())
+
                 if self.is_frame_updated {
                     self.clock.tick(60);
                     self.is_frame_updated = false;
@@ -111,5 +117,17 @@ impl NesEmulator {
     /// Set is_frame_updated to true
     pub fn set_frame_updated(&mut self) {
         self.is_frame_updated = true;
+    }
+
+    /// Activate test mode and set the execution reference file
+    pub fn set_test_mode(&mut self, file_name) {
+        self.test_mode = true;
+        let test_file = try!(File::open(file_name));
+        self.test_file = Some(BufReader::new(file));
+    }
+
+    /// Performs test execution against reference execution log to find descrepancies
+    fn check_test(&mut self, cpu_status: crate::cpu::Status, ppu_status: crate::ppu::Status) {
+        let current_line = self.test_file.unwrap().read_line().unwrap();
     }
 }

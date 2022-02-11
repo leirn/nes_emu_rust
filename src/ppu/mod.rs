@@ -5,15 +5,20 @@ use crate::cartridge::Cartridge;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+struct Status{
+    col: u16,
+    line: u16,
+}
+
 pub struct Ppu {
     screen: screen::Screen,
-    
+
     // internal registers
     register_v: u16,    // Current VRAM address, 15 bits
     register_t: u16,    // Temporary VRAM address, 15 bits. Can be thought of as address of top left onscreen tile
     register_x: u8,     // Fine X Scroll, 3 bits
     register_w: bool,   // First or second write toggle, 1 bit
-    
+
     // Sprite registers
     primary_oam: [u8; 0x100],
     secondary_oam: [u8; 0x40],
@@ -46,7 +51,7 @@ impl Ppu {
     pub fn new(cartridge: Rc<RefCell<Cartridge>>, sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Ppu {
         Ppu {
             screen : screen::Screen::new(sdl_context),
-    
+
             // internal registers
             register_v: 0,      // Current VRAM address, 15 bits
             register_t: 0,      // Temporary VRAM address, 15 bits. Can be thought of as address of top left onscreen tile
@@ -93,7 +98,7 @@ impl Ppu {
 
     /// Execute next instruction
     pub fn next(&self) {
-        
+
     }
 
     pub fn read_0x2002(&self) -> u8 {
@@ -109,30 +114,38 @@ impl Ppu {
     }
 
     pub fn write_0x2000(&self, value: u8) {
-        
+
     }
 
     pub fn write_0x2001(&self, value: u8) {
-        
+
     }
 
     pub fn write_0x2003(&self, value: u8) {
-        
+
     }
 
     pub fn write_0x2004(&self, value: u8) {
-        
+
     }
 
     pub fn write_0x2005(&self, value: u8) {
-        
+
     }
 
     pub fn write_0x2006(&self, value: u8) {
-        
+
     }
 
     pub fn write_0x2007(&self, value: u8) {
-        
+
+    }
+
+    /// Return a dictionnary containing the current PPU Status. Usefull for debugging
+    pub fn get_status(&self) -> Status {
+        Status {
+            col: self.col,
+            line: self.line,
+        }
     }
 }

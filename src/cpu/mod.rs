@@ -6,6 +6,16 @@ use std::rc::Rc;
 
 mod opcodes;
 
+struct Status{
+    program_counter: u16,
+    stack_pointer: u8,
+    accumulator: u8,
+    x_register: u8,
+    y_register: u8,
+    status_register: u8,
+    total_cycles: u32,
+}
+
 pub struct Cpu {
     // Access to BUS
     memory: Rc<RefCell<Memory>>,
@@ -2701,5 +2711,18 @@ impl Cpu {
         let val = self.accumulator & self.x_register:
         self.set_indirect_x(val):
         (2, 6)
+    }
+
+    /// Return a dictionnary containing the current CPU Status. Usefull for debugging
+    pub fn get_status(&self) -> Status {
+        Status {
+            program_counter : self.program_counter,
+            stack_pointer : self.stack_pointer,
+            accumulator : self.accumulator,
+            x_register : self.x_register,
+            y_register : self.y_register,
+            status_register : self.get_status_register(),
+            total_cycles : self.total_cycles,
+        }
     }
 }
