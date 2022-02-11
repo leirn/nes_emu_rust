@@ -292,6 +292,24 @@ impl Cpu {
         // RTS / RTI
         self.instructions.insert(0x40, Cpu::fn_0x40);
         self.instructions.insert(0x60, Cpu::fn_0x60);
+        // SBC
+        self.instructions.insert(0xe9, Cpu::fn_0xe9);
+        self.instructions.insert(0xeb, Cpu::fn_0xeb);
+        self.instructions.insert(0xe5, Cpu::fn_0xe5);
+        self.instructions.insert(0xf5, Cpu::fn_0xf5);
+        self.instructions.insert(0xed, Cpu::fn_0xed);
+        self.instructions.insert(0xfd, Cpu::fn_0xfd);
+        self.instructions.insert(0xf9, Cpu::fn_0xf9);
+        self.instructions.insert(0xe1, Cpu::fn_0xe1);
+        self.instructions.insert(0xf1, Cpu::fn_0xf1);
+        // STA
+        self.instructions.insert(0x85, Cpu::fn_0x85);
+        self.instructions.insert(0x95, Cpu::fn_0x95);
+        self.instructions.insert(0x8d, Cpu::fn_0x8d);
+        self.instructions.insert(0x9d, Cpu::fn_0x9d);
+        self.instructions.insert(0x99, Cpu::fn_0x99);
+        self.instructions.insert(0x81, Cpu::fn_0x81);
+        self.instructions.insert(0x91, Cpu::fn_0x91);
     }
 
     /// Dummy function to temporarly load the instruction array
@@ -318,7 +336,7 @@ impl Cpu {
         self.push(0);
         self.push(0);
         self.push(0);
-        self.total_cycles = 7; //# Cout de l'init
+        self.total_cycles = 7; // Cout de l'init
         self.remaining_cycles = 7 - 1;
     }
 
@@ -2399,6 +2417,103 @@ impl Cpu {
     ///
     /// SBC is the same as ADC with two's complement on second operand
     fn sbc(&mut self, value: u8) {
-        self.adc(255 - value)
+        self.adc(255 - value);
+    }
+
+    /// Function call for SBC #$xx. Immediate
+    fn fn_0xe9(&mut self) -> (u16, u32) {
+        self.sbc(self.get_immediate());
+        (2, 2)
+    }
+
+    /// Function call for SBC #$xx. Immediate
+    /// 0xeb alias to 0xe9
+    fn fn_0xeb(&mut self) -> (u16, u32) {
+        self.fn_0xe9()
+    }
+
+    /// Function call for SBC $xx. Zero Page
+    fn fn_0xe5(&mut self) -> (u16, u32) {
+        self.sbc(self.get_zero_page_value());
+        (2, 3)
+    }
+
+    /// Function call for SBC $xx, X. Zero Page, X
+    fn fn_0xf5(&mut self) -> (u16, u32) {
+        self.sbc(self.get_zero_page_x_value());
+        (2, 4)
+    }
+
+    /// Function call for SBC $xxxx. Absolute
+    fn fn_0xed(&mut self) -> (u16, u32) {
+        self.sbc(self.get_absolute_value());
+        (3, 4)
+    }
+
+    /// Function call for SBC $xxxx, X. Absolute, X
+    fn fn_0xfd(&mut self) -> (u16, u32) {
+        self.sbc(self.get_absolute_x_value());
+        (3, 4)
+    }
+
+    /// Function call for SBC $xxxx, Y. Absolute, Y
+    fn fn_0xf9(&mut self) -> (u16, u32) {
+        self.sbc(self.get_absolute_y_value());
+        (3, 4)
+    }
+
+    /// Function call for SBC ($xx, X). Indirect, X
+    fn fn_0xe1(&mut self) -> (u16, u32) {
+        self.sbc(self.get_indirect_x_value());
+        (2, 6)
+    }
+
+    /// Function call for STA $xx. Zero Page
+    fn fn_0x85(&mut self) -> (u16, u32) {
+        let address = self.get_zero_page_address();
+        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        (2, 3 + extra_cycles)
+    }
+
+    /// Function call for STA $xx, X. Zero Page, X
+    fn fn_0x95(&mut self) -> (u16, u32) {
+        let address = self.get_zero_page_x_address();
+        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        (2, 4 + extra_cycles)
+    }
+
+    /// Function call for STA $xxxx. Absolute
+    fn fn_0x8d(&mut self) -> (u16, u32) {
+        let address = self.get_absolute_address();
+        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        (3, 4 + extra_cycles)
+    }
+
+    /// Function call for STA $xxxx, X. Absolute, X
+    fn fn_0x9d(&mut self) -> (u16, u32) {
+        let address = self.get_absolute_x_address(false); // No additionnal cycles on STA
+        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        (3, 5 + extra_cycles)
+    }
+
+    /// Function call for STA $xxxx, Y. Absolute, Y
+    fn fn_0x99(&mut self) -> (u16, u32) {
+        let address = self.get_absolute_y_address(false); // No additionnal cycles on STA
+        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        (3, 5 + extra_cycles)
+    }
+
+    /// Function call for STA ($xx, X). Indirect, X
+    fn fn_0x81(&mut self) -> (u16, u32) {
+        let address = self.get_indirect_x_address();
+        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        (2, 6 + extra_cycles)
+    }
+
+    /// Function call for STA ($xx), Y. Indirect, Y
+    fn fn_0x91(&mut self) -> (u16, u32) {
+        let address = self.get_indirect_y_address(false); // No additionnal cycles on STA
+        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        (2, 6 + extra_cycles)
     }
 }
