@@ -4,6 +4,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+mod opcodes;
+
 pub struct Cpu {
     // Access to BUS
     memory: Rc<RefCell<Memory>>,
@@ -234,6 +236,14 @@ impl Cpu {
         self.instructions.insert(0x19, Cpu::fn_0x19);
         self.instructions.insert(0x01, Cpu::fn_0x01);
         self.instructions.insert(0x11, Cpu::fn_0x11);
+        // SLO
+        self.instructions.insert(0x07, Cpu::fn_0x07);
+        self.instructions.insert(0x17, Cpu::fn_0x17);
+        self.instructions.insert(0x0f, Cpu::fn_0x0f);
+        self.instructions.insert(0x1f, Cpu::fn_0x1f);
+        self.instructions.insert(0x1b, Cpu::fn_0x1b);
+        self.instructions.insert(0x03, Cpu::fn_0x03);
+        self.instructions.insert(0x13, Cpu::fn_0x13);
     }
 
     /// Dummy function to temporarly load the instruction array
@@ -1803,6 +1813,85 @@ impl Cpu {
         self.accumulator |= self.get_indirect_y_value(false);
         self.set_flags_nz(self.accumulator);
         (2, 5)
+    }
+
+    /// Function call for SLO $xx. Zero Page
+    /// Equivalent to:
+    ///     ASL
+    ///     ORA
+    fn fn_0x07(&mut self):
+        self.fn_0x06(); // ASL
+        self.fn_0x05(); // ORA
+        (2, 5)
+    }
+
+    /// Function call for SLO $xx, X. Zero Page, X
+    /// Equivalent to:
+    ///     ASL
+    ///     ORA
+    fn fn_0x17(&mut self):
+        self.fn_0x16(); // ASL
+        self.fn_0x15(); // ORA
+        (2, 6)
+    }
+
+    /// Function call for SLO $xxxx. Absolute
+    /// Equivalent to:
+    ///     ASL
+    ///     ORA
+    fn fn_0x0f(&mut self):
+        self.fn_0x0e(); // ASL
+        self.fn_0x0d(); // ORA
+        (3, 6)
+    }
+
+    /// Function call for SLO $xxxx, X. Absolute, X
+    /// Equivalent to:
+    ///     ASL
+    ///     ORA
+    fn fn_0x1f(&mut self):
+        self.fn_0x1e_with_no_additionnal_cycles(); // ASL
+        self.fn_0x1d_with_no_additionnal_cycles(); // ORA
+        (3, 7)
+    }
+
+    /// Function call for SLO $xxxx, Y. Absolute, Y
+    /// Equivalent to:
+    ///     ASL
+    ///     ORA
+    fn fn_0x1b(&mut self):
+        value = self.get_absolute_y_value(false);
+        self.carry = value >> 7;
+        value = (value << 1) & 0b11111111;
+        self.set_absolute_y(value, false);
+        self.fn_0x19_with_no_additionnal_cycles(); // ORA
+        (3, 7)
+    }
+
+    /// Function call for SLO ($xx, X). Indirect, X
+    /// Equivalent to:
+    ///     ASL
+    ///     ORA
+    fn fn_0x03(&mut self):
+        value = self.get_indirect_x_value();
+        self.carry = value >> 7;
+        value = (value << 1) & 0b11111111;
+        self.set_indirect_x(value);
+        self.fn_0x01(); // ORA
+        (2, 8)
+    }
+
+    /// Function call for SLO ($xx), Y. Indirect, Y
+    /// Equivalent to:
+    ///     ASL
+    ///     ORA
+    fn fn_0x13(&mut self):
+        value = self.get_indirect_y_value(false);
+        self.carry = value >> 7;
+        value = (value << 1) & 0b11111111;
+        self.set_indirect_y(value, false);
+        self.fn_0x11_with_no_additionnal_cycles(); // ORA
+        (2, 8)
     }
 
     /// General implementation for sbc operation
