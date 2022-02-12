@@ -18,7 +18,7 @@ pub struct NesEmulator {
     apu: Rc<RefCell<crate::apu::Apu>>,
     ppu: Rc<RefCell<crate::ppu::Ppu>>,
     cpu: Rc<RefCell<crate::cpu::Cpu>>,
-    test_file: Option<BufReader>,
+    test_file: Option<BufReader<File>>,
 }
 
 impl NesEmulator {
@@ -76,9 +76,11 @@ impl NesEmulator {
                 self.ppu.borrow_mut().next();
                 self.ppu.borrow_mut().next();
 
-                if self.is_test_mode and self.cpu.borrow_mut().remaining_cycles == 0:
-                    self.check_test(self.cpu.borrow_mut().get_status(), self.ppu.borrow_mut().get_status())
-
+                if self.is_test_mode && self.cpu.borrow_mut().get_remaining_cycles() == 0 {
+                    let cpu_status = self.cpu.borrow_mut().get_status();
+                    let ppu_status = self.ppu.borrow_mut().get_status();
+                    self.check_test(cpu_status, ppu_status);
+                }
                 if self.is_frame_updated {
                     self.clock.tick(60);
                     self.is_frame_updated = false;
@@ -120,14 +122,14 @@ impl NesEmulator {
     }
 
     /// Activate test mode and set the execution reference file
-    pub fn set_test_mode(&mut self, file_name) {
-        self.test_mode = true;
-        let test_file = try!(File::open(file_name));
-        self.test_file = Some(BufReader::new(file));
+    pub fn set_test_mode(&mut self, file_name: &str) {
+        self.is_test_mode = true;
+        let test_file = File::open(file_name).unwrap();
+        self.test_file = Some(BufReader::new(test_file));
     }
 
     /// Performs test execution against reference execution log to find descrepancies
     fn check_test(&mut self, cpu_status: crate::cpu::Status, ppu_status: crate::ppu::Status) {
-        let current_line = self.test_file.unwrap().read_line().unwrap();
+        //let current_line = self.test_file.unwrap().read_line().unwrap();
     }
 }

@@ -8,8 +8,8 @@ edition = "2018"
 
 [dependencies]
 sdl2 = "0.35.1"
-phf = "0.10.1"
-config = "0.11.0"
+phf = { version = "0.10.1", features = ["macros"] }
+yaml-rust = "0.4"
 argparse = "0.2.2"
 
 [profile.dev]

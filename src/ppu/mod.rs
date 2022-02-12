@@ -5,7 +5,7 @@ use crate::cartridge::Cartridge;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-struct Status{
+pub struct Status{
     col: u16,
     line: u16,
 }

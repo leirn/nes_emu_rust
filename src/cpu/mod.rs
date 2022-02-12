@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 mod opcodes;
 
-struct Status{
+pub struct Status{
     program_counter: u16,
     stack_pointer: u8,
     accumulator: u8,
@@ -1973,9 +1973,9 @@ impl Cpu {
     ///     ASL
     ///     ORA
     fn fn_0x1b(&mut self) -> (u16, u32) {
-        value = self.get_absolute_y_value(false);
+        let value = self.get_absolute_y_value(false);
         self.carry = (value >> 7) != 0;
-        value = (value << 1) & 0b11111111;
+        let value = (value << 1) & 0b11111111;
         self.set_absolute_y(value, false);
         self.fn_0x19_with_no_additionnal_cycles(); // ORA
         (3, 7)
@@ -1986,9 +1986,9 @@ impl Cpu {
     ///     ASL
     ///     ORA
     fn fn_0x03(&mut self) -> (u16, u32) {
-        value = self.get_indirect_x_value();
+        let value = self.get_indirect_x_value();
         self.carry = (value >> 7) != 0;
-        value = (value << 1) & 0b11111111;
+        let value = (value << 1) & 0b11111111;
         self.set_indirect_x(value);
         self.fn_0x01(); // ORA
         (2, 8)
@@ -1999,9 +1999,9 @@ impl Cpu {
     ///     ASL
     ///     ORA
     fn fn_0x13(&mut self) -> (u16, u32) {
-        value = self.get_indirect_y_value(false);
+        let value = self.get_indirect_y_value(false);
         self.carry = (value >> 7) != 0;
-        value = (value << 1) & 0b11111111;
+        let value = (value << 1) & 0b11111111;
         self.set_indirect_y(value, false);
         self.fn_0x11_with_no_additionnal_cycles(); // ORA
         (2, 8)
@@ -2055,7 +2055,6 @@ impl Cpu {
         let val = self.get_absolute_y_value(false);
         let val = (val << 1) | (self.carry as u8);
         self.carry = (val >> 8) != 0;
-        let val &= 255;
         self.set_absolute_y(val, false);
         self.fn_0x39_with_no_additionnal_cycles(); // AND
         (3, 7)
@@ -2069,7 +2068,6 @@ impl Cpu {
         let val = self.get_indirect_x_value();
         let val = (val << 1) | (self.carry as u8);
         self.carry = (val >> 8) != 0;
-        let val &= 255;
         self.set_indirect_x(val);
         self.fn_0x21(); // AND
         (2, 8)
@@ -2079,11 +2077,10 @@ impl Cpu {
     /// Equivalent to:
     ///     ROL
     ///     AND
-    fn fn_0x33(&mut self) -> (u16, u32)
+    fn fn_0x33(&mut self) -> (u16, u32) {
         let val = self.get_indirect_y_value(false);
         let val = (val << 1) | (self.carry as u8);
         self.carry = (val >> 8) != 0;
-        let val &= 255;
         self.set_indirect_y(val, false);
         self.fn_0x31_with_no_additionnal_cycles(); // AND
         (2, 8)
@@ -2127,15 +2124,16 @@ impl Cpu {
         self.fn_0x7e_with_no_additionnal_cycles(); // ROR
         self.fn_0x7d_with_no_additionnal_cycles(); // ADC
         (3, 7)
+    }
 
-        /// Function call for RRA $xxxx, Y. Absolute, Y
-        /// Equivalent to:
-        ///     ROR
-        ///     AND
+    /// Function call for RRA $xxxx, Y. Absolute, Y
+    /// Equivalent to:
+    ///     ROR
+    ///     AND
     fn fn_0x7b(&mut self) -> (u16, u32) {
         let val = self.get_absolute_y_value(false);
         let carry = val & 1;
-        let val = (val >> 1) | (self.carry as u8 << 7);
+        let val = (val >> 1) | ((self.carry as u8) << 7);
         self.carry = carry != 0;
         self.set_absolute_y(val, false);
         self.fn_0x79_with_no_additionnal_cycles(); // ADC
@@ -2149,7 +2147,7 @@ impl Cpu {
     fn fn_0x63(&mut self) -> (u16, u32) {
         let val = self.get_indirect_x_value();
         let carry = val & 1;
-        let val = (val >> 1) | (self.carry as u8 << 7);
+        let val = (val >> 1) | ((self.carry as u8) << 7);
         self.carry = carry != 0;
         self.set_indirect_x(val);
         self.fn_0x61(); // ADC
@@ -2163,7 +2161,7 @@ impl Cpu {
     fn fn_0x73(&mut self) -> (u16, u32) {
         let val = self.get_indirect_y_value(false);
         let carry = val & 1;
-        let val = (val >> 1) | (self.carry as u8 << 7);
+        let val = (val >> 1) | ((self.carry as u8) << 7);
         self.carry = carry != 0;
         self.set_indirect_y(val, false);
         self.fn_0x71_with_no_additionnal_cycles(); // ADC
@@ -2237,7 +2235,7 @@ impl Cpu {
     }
 
     /// Function call for SRE ($xx), Y. Indirect, Y
-    /// Equivalent to:
+    /// Equivalent to
     ///     LSR
     ///     EOR
     fn fn_0x53(&mut self) -> (u16, u32) {
@@ -2309,7 +2307,6 @@ impl Cpu {
     fn fn_0x2a(&mut self) -> (u16, u32) {
         self.accumulator = (self.accumulator << 1) | (self.carry as u8);
         self.carry = (self.accumulator >> 8) != 0;
-        self.accumulator &= 255;
         self.set_flags_nz(self.accumulator);
         (1, 2)
     }
@@ -2318,8 +2315,7 @@ impl Cpu {
     fn fn_0x26(&mut self) -> (u16, u32) {
         let val = self.get_zero_page_value();
         let val = (val << 1) | (self.carry as u8);
-        self.carry = (val >> 8) != 0;;
-        let val &= 255;
+        self.carry = (val >> 8) != 0;
         self.set_zero_page(val);
         self.set_flags_nz(val);
         (2, 5)
@@ -2330,7 +2326,6 @@ impl Cpu {
         let val = self.get_zero_page_x_value();
         let val = (val << 1) | (self.carry as u8);
         self.carry = (val >> 8) != 0;
-        let val &= 255;
         self.set_zero_page_x(val);
         self.set_flags_nz(val);
         (2, 6)
@@ -2341,7 +2336,6 @@ impl Cpu {
         let val = self.get_absolute_value();
         let val = (val << 1) | (self.carry as u8);
         self.carry = (val >> 8) != 0;
-        let val &= 255;
         self.set_absolute(val);
         self.set_flags_nz(val);
         (3, 6)
@@ -2352,7 +2346,6 @@ impl Cpu {
         let val = self.get_absolute_x_value(true);
         let val = (val << 1) | (self.carry as u8);
         self.carry = (val >> 8) != 0;
-        let val &= 255;
         self.set_absolute_x(val, true);
         self.set_flags_nz(val);
         (3, 7)
@@ -2363,7 +2356,6 @@ impl Cpu {
         let val = self.get_absolute_x_value(false);
         let val = (val << 1) | (self.carry as u8);
         self.carry = (val >> 8) != 0;
-        let val &= 255;
         self.set_absolute_x(val, false);
         self.set_flags_nz(val);
         (3, 7)
@@ -2372,7 +2364,7 @@ impl Cpu {
     /// Function call for ROR A. Accumulator
     fn fn_0x6a(&mut self) -> (u16, u32) {
         let carry = self.accumulator & 1;
-        self.accumulator = (self.accumulator >> 1) | (self.carry as u8 << 7);
+        self.accumulator = (self.accumulator >> 1) | ((self.carry as u8) << 7);
         self.carry = carry != 0;
         self.set_flags_nz(self.accumulator);
         (1, 2)
@@ -2382,7 +2374,7 @@ impl Cpu {
     fn fn_0x66(&mut self) -> (u16, u32) {
         let val = self.get_zero_page_value();
         let carry = val & 1;
-        let val = (val >> 1) | (self.carry as u8 << 7);
+        let val = (val >> 1) | ((self.carry as u8) << 7);
         self.carry = carry != 0;
         self.set_zero_page(val);
         self.set_flags_nz(val);
@@ -2393,7 +2385,7 @@ impl Cpu {
     fn fn_0x76(&mut self) -> (u16, u32) {
         let val = self.get_zero_page_x_value();
         let carry = val & 1;
-        let val = (val >> 1) | (self.carry as u8 << 7);
+        let val = (val >> 1) | ((self.carry as u8) << 7);
         self.carry = carry != 0;
         self.set_zero_page_x(val);
         self.set_flags_nz(val);
@@ -2404,7 +2396,7 @@ impl Cpu {
     fn fn_0x6e(&mut self) -> (u16, u32) {
         let val = self.get_absolute_value();
         let carry = val & 1;
-        let val = (val >> 1) | (self.carry as u8 << 7);
+        let val = (val >> 1) | ((self.carry as u8) << 7);
         self.carry = carry != 0;
         self.set_absolute(val);
         self.set_flags_nz(val);
@@ -2415,7 +2407,7 @@ impl Cpu {
     fn fn_0x7e(&mut self) -> (u16, u32) {
         let val = self.get_absolute_x_value(true);
         let carry = val & 1;
-        let val = (val >> 1) | (self.carry as u8 << 7);
+        let val = (val >> 1) | ((self.carry as u8) << 7);
         self.carry = carry != 0;
         self.set_absolute_x(val, true);
         self.set_flags_nz(val);
@@ -2426,7 +2418,7 @@ impl Cpu {
     fn fn_0x7e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
         let val = self.get_absolute_x_value(false);
         let carry = val & 1;
-        let val = (val >> 1) | (self.carry as u8 << 7);
+        let val = (val >> 1) | ((self.carry as u8) << 7);
         self.carry = carry != 0;
         self.set_absolute_x(val, false);
         self.set_flags_nz(val);
@@ -2435,17 +2427,18 @@ impl Cpu {
 
     /// Function call for RTI. Implied
     fn fn_0x40(&mut self) -> (u16, u32) {
-        self.set_status_register(self.pop());
-        let low = self.pop() as u16;
-        let high = self.pop() as u16;
+        let stack_value = self.pull();
+        self.set_status_register(stack_value);
+        let low = self.pull() as u16;
+        let high = self.pull() as u16;
         self.program_counter = (high << 8) + low;
         (0, 6)
     }
 
     /// Function call for RTS. Implied
     fn fn_0x60(&mut self) -> (u16, u32) {
-        let low = self.pop() as u16;
-        let high = self.pop() as u16;
+        let low = self.pull() as u16;
+        let high = self.pull() as u16;
         self.program_counter = (high << 8) + low + 1; // JSR increment only by two, and RTS add the third
         (0, 6)
     }
@@ -2459,7 +2452,8 @@ impl Cpu {
 
     /// Function call for SBC #$xx. Immediate
     fn fn_0xe9(&mut self) -> (u16, u32) {
-        self.sbc(self.get_immediate());
+        let value = self.get_immediate();
+        self.sbc(value);
         (2, 2)
     }
 
@@ -2471,38 +2465,51 @@ impl Cpu {
 
     /// Function call for SBC $xx. Zero Page
     fn fn_0xe5(&mut self) -> (u16, u32) {
-        self.sbc(self.get_zero_page_value());
+        let value = self.get_zero_page_value();
+        self.sbc(value);
         (2, 3)
     }
 
     /// Function call for SBC $xx, X. Zero Page, X
     fn fn_0xf5(&mut self) -> (u16, u32) {
-        self.sbc(self.get_zero_page_x_value());
+        let value = self.get_zero_page_x_value();
+        self.sbc(value);
         (2, 4)
     }
 
     /// Function call for SBC $xxxx. Absolute
     fn fn_0xed(&mut self) -> (u16, u32) {
-        self.sbc(self.get_absolute_value());
+        let value = self.get_absolute_value();
+        self.sbc(value);
         (3, 4)
     }
 
     /// Function call for SBC $xxxx, X. Absolute, X
     fn fn_0xfd(&mut self) -> (u16, u32) {
-        self.sbc(self.get_absolute_x_value());
+        let value = self.get_absolute_x_value(true);
+        self.sbc(value);
         (3, 4)
     }
 
     /// Function call for SBC $xxxx, Y. Absolute, Y
     fn fn_0xf9(&mut self) -> (u16, u32) {
-        self.sbc(self.get_absolute_y_value());
+        let value = self.get_absolute_y_value(true);
+        self.sbc(value);
         (3, 4)
     }
 
     /// Function call for SBC ($xx, X). Indirect, X
     fn fn_0xe1(&mut self) -> (u16, u32) {
-        self.sbc(self.get_indirect_x_value());
+        let value = self.get_indirect_x_value();
+        self.sbc(value);
         (2, 6)
+    }
+
+    /// Function call for SBC ($xx, X). Indirect, Y
+    fn fn_0xf1(&mut self) -> (u16, u32) {
+        let value = self.get_indirect_y_value(true);
+        self.sbc(value);
+        (2, 5)
     }
 
     /// Function call for STA $xx. Zero Page
@@ -2575,7 +2582,7 @@ impl Cpu {
 
     /// Function call for PLA. Implied
     fn fn_0x68(&mut self) -> (u16, u32) {
-        self.accumulator = self.pop();
+        self.accumulator = self.pull();
         self.set_flags_nz(self.accumulator);
         (1, 4)
     }
@@ -2590,7 +2597,7 @@ impl Cpu {
 
     /// Function call for PLP. Implied
     fn fn_0x28(&mut self) -> (u16, u32) {
-        let status_register = self.pop();
+        let status_register = self.pull();
         self.set_status_register(status_register);
         (1, 4)
     }
@@ -2663,7 +2670,7 @@ impl Cpu {
 
     /// Function call for LAX $xxxx, Y. Absolute, Y
     fn fn_0xbf(&mut self) -> (u16, u32) {
-        self.accumulator = self.get_absolute_y_value();
+        self.accumulator = self.get_absolute_y_value(true);
         self.x_register = self.accumulator;
         self.set_flags_nz(self.accumulator);
         (3, 4)
@@ -2679,7 +2686,7 @@ impl Cpu {
 
     /// Function call for LAX ($xx), Y. Indirect, Y
     fn fn_0xb3(&mut self) -> (u16, u32) {
-        self.accumulator = self.get_indirect_y_value();
+        self.accumulator = self.get_indirect_y_value(true);
         self.x_register = self.accumulator;
         self.set_flags_nz(self.accumulator);
         (2, 5)
@@ -2708,8 +2715,8 @@ impl Cpu {
 
     /// Function call for SAX ($xx, X). Indirect, X
     fn fn_0x83(&mut self) -> (u16, u32) {
-        let val = self.accumulator & self.x_register:
-        self.set_indirect_x(val):
+        let val = self.accumulator & self.x_register;
+        self.set_indirect_x(val);
         (2, 6)
     }
 
@@ -2724,5 +2731,9 @@ impl Cpu {
             status_register : self.get_status_register(),
             total_cycles : self.total_cycles,
         }
+    }
+
+    pub fn get_remaining_cycles(&self) -> u32 {
+        self.remaining_cycles
     }
 }

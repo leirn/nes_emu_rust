@@ -105,7 +105,7 @@ impl Memory {
     /// 0x4020 to 0x5fff : Cartridge space but for what ??
     /// 0x6000 to 0x7fff : Cartridge ram
     /// 0x8000 to 0xffff : Cartridge prg_rom
-    pub fn write_rom(&mut self, address: u16, value: u8) {
+    pub fn write_rom(&mut self, address: u16, value: u8) -> u32 {
         match address {
             0..=0x1fff => self.internal_ram[(address % 0x800) as usize] = value,
             0x2000..=0x3fff => {
@@ -127,7 +127,9 @@ impl Memory {
                     // Save inputs 1 and 2
                     0x4016 => (),
                     // OAMDMA
-                    0x4014 => (),
+                    0x4014 => {
+                        return 514
+                    },
                     // Read APU
                     _ => self.apu.borrow_mut().write_registers(address, value),
                 }
@@ -137,5 +139,6 @@ impl Memory {
             0x6000..=0x7fff => self.cartridge.borrow_mut().write_ram(address - 0x6000, value),
             0x8000..=0xffff => self.cartridge.borrow_mut().write_prg_rom(address - 0x8000, value),
         }
+        0
     }
 }
