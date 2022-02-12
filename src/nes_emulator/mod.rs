@@ -21,7 +21,8 @@ pub struct NesEmulator {
     apu: Rc<RefCell<crate::apu::Apu>>,
     ppu: Rc<RefCell<crate::ppu::Ppu>>,
     cpu: Rc<RefCell<crate::cpu::Cpu>>,
-    test_file: Option<BufReader<File>>,
+    lines: Vec<String>,
+    line_index: usize,
 }
 
 impl NesEmulator {
@@ -50,7 +51,8 @@ impl NesEmulator {
             apu: apu,
             ppu: ppu,
             cpu: cpu,
-            test_file: None,
+            lines: vec![],
+            line_index: 0,
         }
     }
 
@@ -128,13 +130,16 @@ impl NesEmulator {
     pub fn set_test_mode(&mut self, file_name: &str) {
         self.is_test_mode = true;
         let test_file = File::open(file_name).unwrap();
-        self.test_file = Some(BufReader::new(test_file));
+        let buffer = BufReader::new(test_file);
+        for line in buffer.lines() {
+            self.lines.push(line.unwrap());
+        }
     }
 
     /// Performs test execution against reference execution log to find descrepancies
     fn check_test(&mut self, cpu_status: crate::cpu::Status, ppu_status: crate::ppu::Status) {
-        let mut current_line = String::new();
-        self.test_file.as_ref().map(|b| b.read_line(&mut current_line));
+        let current_line = self.lines[self.line_index].clone();
+        self.line_index += 1;
 
         //let current_line = "C000  4C F5 C5  JMP $C5F5                       A:00 X:00 Y:00 P:24 SP:FD PPU:  0, 21 CYC:7";
 
@@ -178,10 +183,6 @@ impl NesEmulator {
         assert_eq!(cpu_status.total_cycles, log_status.total_cycles);
         //assert_eq!(ppu_status.col, log_status.col);
         //assert_eq!(ppu_status.line, log_status.line);
-
-        if cpu_status.total_cycles > 30 {
-            panic!("Stop");
-        }
 
         println!("");
 

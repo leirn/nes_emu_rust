@@ -95,6 +95,7 @@ impl Cpu {
         self.instructions.insert(0x39, Cpu::fn_0x39);
         self.instructions.insert(0x3d, Cpu::fn_0x3d);
         // ASL
+        self.instructions.insert(0x0a, Cpu::fn_0x0a);
         self.instructions.insert(0x06, Cpu::fn_0x06);
         self.instructions.insert(0x0e, Cpu::fn_0x0e);
         self.instructions.insert(0x16, Cpu::fn_0x16);
@@ -827,6 +828,14 @@ impl Cpu {
         self.accumulator &= self.get_indirect_y_value(false);
         self.set_flags_nz(self.accumulator);
         (2, 5)
+    }
+
+    /// Function call for ASL. Accumulator
+    fn fn_0x0a(&mut self) -> (u16, u32) {
+        self.carry = (self.accumulator >> 7) != 0;
+        self.accumulator = (self.accumulator << 1) & 0b11111111;
+        self.set_flags_nz(self.accumulator);
+        (1, 2)
     }
 
     /// Function call for ASL $xx. Zero Page
