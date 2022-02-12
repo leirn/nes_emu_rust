@@ -1315,9 +1315,9 @@ impl Cpu {
 
     /// Function call for ISC ($xx, Y). Indirect, Y
     fn fn_0xf3(&mut self) -> (u16, u32) {
-        let value = self.get_indirect_y_value(false);
+        let value = self.get_indirect_y_value(true);
         let value = value + 1;
-        self.set_indirect_y(value, false);
+        self.set_indirect_y(value, true);
         self.sbc(value);
         (2, 6)
     }
@@ -2319,8 +2319,9 @@ impl Cpu {
 
     /// Function call for ROL A. Accumulator
     fn fn_0x2a(&mut self) -> (u16, u32) {
-        self.accumulator = (self.accumulator << 1) | (self.carry as u8);
-        self.carry = (self.accumulator >> 8) != 0;
+        let carry = self.carry as u8;
+        self.carry = (self.accumulator >> 7) != 0;
+        self.accumulator = (self.accumulator << 1) | (carry);
         self.set_flags_nz(self.accumulator);
         (1, 2)
     }
@@ -2328,8 +2329,9 @@ impl Cpu {
     /// Function call for ROL $xx. Zero Page
     fn fn_0x26(&mut self) -> (u16, u32) {
         let val = self.get_zero_page_value();
-        let val = (val << 1) | (self.carry as u8);
-        self.carry = (val >> 8) != 0;
+        let carry = self.carry as u8;
+        self.carry = (val >> 7) != 0;
+        let val = (val << 1) | (carry);
         self.set_zero_page(val);
         self.set_flags_nz(val);
         (2, 5)
@@ -2338,8 +2340,9 @@ impl Cpu {
     /// Function call for ROL $xx, X. Zero Page, X
     fn fn_0x36(&mut self) -> (u16, u32) {
         let val = self.get_zero_page_x_value();
-        let val = (val << 1) | (self.carry as u8);
-        self.carry = (val >> 8) != 0;
+        let carry = self.carry as u8;
+        self.carry = (val >> 7) != 0;
+        let val = (val << 1) | (carry);
         self.set_zero_page_x(val);
         self.set_flags_nz(val);
         (2, 6)
@@ -2348,8 +2351,9 @@ impl Cpu {
     /// Function call for ROL $xxxx. Absolute
     fn fn_0x2e(&mut self) -> (u16, u32) {
         let val = self.get_absolute_value();
-        let val = (val << 1) | (self.carry as u8);
-        self.carry = (val >> 8) != 0;
+        let carry = self.carry as u8;
+        self.carry = (val >> 7) != 0;
+        let val = (val << 1) | (carry);
         self.set_absolute(val);
         self.set_flags_nz(val);
         (3, 6)
@@ -2358,8 +2362,9 @@ impl Cpu {
     /// Function call for ROL $xxxx, X. Absolute, X
     fn fn_0x3e(&mut self) -> (u16, u32) {
         let val = self.get_absolute_x_value(true);
-        let val = (val << 1) | (self.carry as u8);
-        self.carry = (val >> 8) != 0;
+        let carry = self.carry as u8;
+        self.carry = (val >> 7) != 0;
+        let val = (val << 1) | (carry);
         self.set_absolute_x(val, true);
         self.set_flags_nz(val);
         (3, 7)
@@ -2368,8 +2373,9 @@ impl Cpu {
     /// Function call for ROL $xxxx, X. Absolute, X
     fn fn_0x3e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
         let val = self.get_absolute_x_value(false);
-        let val = (val << 1) | (self.carry as u8);
-        self.carry = (val >> 8) != 0;
+        let carry = self.carry as u8;
+        self.carry = (val >> 7) != 0;
+        let val = (val << 1) | (carry);
         self.set_absolute_x(val, false);
         self.set_flags_nz(val);
         (3, 7)
