@@ -4,11 +4,11 @@ use phf::{Map, phf_map};
 
 #[derive(Clone)]
 pub struct Opcode {
-    opcode: u8,
-    mode: &'static str,
-    syntax: &'static str,
-    len: u8,
-    time: u8,
+    pub opcode: u8,
+    pub mode: &'static str,
+    pub syntax: &'static str,
+    pub len: u8,
+    pub time: u8,
 }
 
 pub static OPCODES: Map<u8, Opcode> = phf_map! {

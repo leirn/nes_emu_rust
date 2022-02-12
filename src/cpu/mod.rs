@@ -4,16 +4,16 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-mod opcodes;
+pub mod opcodes;
 
-pub struct Status{
-    program_counter: u16,
-    stack_pointer: u8,
-    accumulator: u8,
-    x_register: u8,
-    y_register: u8,
-    status_register: u8,
-    total_cycles: u32,
+pub struct Status {
+    pub program_counter: u16,
+    pub stack_pointer: u8,
+    pub accumulator: u8,
+    pub x_register: u8,
+    pub y_register: u8,
+    pub status_register: u8,
+    pub total_cycles: u32,
 }
 
 pub struct Cpu {
@@ -59,7 +59,7 @@ impl Cpu {
             overflow: false,
             break_flag: false,
             decimal: false,
-            interrupt: false,
+            interrupt: true,
             zero: false,
             carry: false,
             instructions: HashMap::new(),
@@ -365,8 +365,12 @@ impl Cpu {
         self.populate_instructions_vector();
 
         // Default is equivalent to JMP ($FFFC)
-        self.program_counter = entry_point.unwrap_or(self.memory.borrow_mut().read_rom_16(0xfffc));
-
+        if entry_point == None {
+            self.program_counter = entry_point.unwrap_or(self.memory.borrow_mut().read_rom_16(0xfffc));
+        }
+        else {
+            self.program_counter = entry_point.unwrap();
+        }
         println!("Entry point is {:x}", self.program_counter);
 
         //Start sequence push stack three time
@@ -383,7 +387,8 @@ impl Cpu {
     /// Otherwise, execute the next opcode
     pub fn next(&mut self) {
         if self.remaining_cycles > 0 {
-            self.remaining_cycles -= 1;
+            self.remaining_cycles = self.remaining_cycles - 1;
+            return
         }
 
         let opcode: u8 = self.memory.borrow_mut().read_rom(self.program_counter);
@@ -1509,7 +1514,7 @@ impl Cpu {
 
     /// Function call for LDA $xx. Zero Page
     fn fn_0xa5(&mut self) -> (u16, u32) {
-        self.accumulator =self.get_zero_page_value();
+        self.accumulator = self.get_zero_page_value();
         self.set_flags_nz(self.accumulator);
         (2, 3)
     }
@@ -1614,7 +1619,7 @@ impl Cpu {
 
     /// Function call for LDY $xxxx. Absolute(&mut self)
     fn fn_0xac(&mut self) -> (u16, u32) {
-        self.y_register =self.get_absolute_value();
+        self.y_register = self.get_absolute_value();
         self.set_flags_nz(self.y_register);
         (3, 4)
     }
@@ -2515,49 +2520,70 @@ impl Cpu {
     /// Function call for STA $xx. Zero Page
     fn fn_0x85(&mut self) -> (u16, u32) {
         let address = self.get_zero_page_address();
-        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        let extra_cycles = self
+            .memory
+            .borrow_mut()
+            .write_rom(address, self.accumulator);
         (2, 3 + extra_cycles)
     }
 
     /// Function call for STA $xx, X. Zero Page, X
     fn fn_0x95(&mut self) -> (u16, u32) {
         let address = self.get_zero_page_x_address();
-        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        let extra_cycles = self
+            .memory
+            .borrow_mut()
+            .write_rom(address, self.accumulator);
         (2, 4 + extra_cycles)
     }
 
     /// Function call for STA $xxxx. Absolute
     fn fn_0x8d(&mut self) -> (u16, u32) {
         let address = self.get_absolute_address();
-        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        let extra_cycles = self
+            .memory
+            .borrow_mut()
+            .write_rom(address, self.accumulator);
         (3, 4 + extra_cycles)
     }
 
     /// Function call for STA $xxxx, X. Absolute, X
     fn fn_0x9d(&mut self) -> (u16, u32) {
         let address = self.get_absolute_x_address(false); // No additionnal cycles on STA
-        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        let extra_cycles = self
+            .memory
+            .borrow_mut()
+            .write_rom(address, self.accumulator);
         (3, 5 + extra_cycles)
     }
 
     /// Function call for STA $xxxx, Y. Absolute, Y
     fn fn_0x99(&mut self) -> (u16, u32) {
         let address = self.get_absolute_y_address(false); // No additionnal cycles on STA
-        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        let extra_cycles = self
+            .memory
+            .borrow_mut()
+            .write_rom(address, self.accumulator);
         (3, 5 + extra_cycles)
     }
 
     /// Function call for STA ($xx, X). Indirect, X
     fn fn_0x81(&mut self) -> (u16, u32) {
         let address = self.get_indirect_x_address();
-        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        let extra_cycles = self
+            .memory
+            .borrow_mut()
+            .write_rom(address, self.accumulator);
         (2, 6 + extra_cycles)
     }
 
     /// Function call for STA ($xx), Y. Indirect, Y
     fn fn_0x91(&mut self) -> (u16, u32) {
         let address = self.get_indirect_y_address(false); // No additionnal cycles on STA
-        let extra_cycles = self.memory.borrow_mut().write_rom(address, self.accumulator);
+        let extra_cycles = self
+            .memory
+            .borrow_mut()
+            .write_rom(address, self.accumulator);
         (2, 6 + extra_cycles)
     }
 
@@ -2723,13 +2749,13 @@ impl Cpu {
     /// Return a dictionnary containing the current CPU Status. Usefull for debugging
     pub fn get_status(&self) -> Status {
         Status {
-            program_counter : self.program_counter,
-            stack_pointer : self.stack_pointer,
-            accumulator : self.accumulator,
-            x_register : self.x_register,
-            y_register : self.y_register,
-            status_register : self.get_status_register(),
-            total_cycles : self.total_cycles,
+            program_counter: self.program_counter,
+            stack_pointer: self.stack_pointer,
+            accumulator: self.accumulator,
+            x_register: self.x_register,
+            y_register: self.y_register,
+            status_register: self.get_status_register(),
+            total_cycles: self.total_cycles,
         }
     }
 

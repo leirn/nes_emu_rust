@@ -11,6 +11,7 @@ sdl2 = "0.35.1"
 phf = { version = "0.10.1", features = ["macros"] }
 yaml-rust = "0.4"
 argparse = "0.2.2"
+regex = "1"
 
 [profile.dev]
 overflow-checks = false

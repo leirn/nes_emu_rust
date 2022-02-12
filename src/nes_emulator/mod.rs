@@ -4,6 +4,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::fs::File;
 use std::io::BufReader;
+use crate::cpu::opcodes::OPCODES;
+use regex::Regex;
+use std::io::BufRead;
 
 pub struct NesEmulator {
     is_nmi: bool,
@@ -52,9 +55,9 @@ impl NesEmulator {
     }
 
     /// Starts and runs the Emulator execution
-    pub fn start(&mut self) {
+    pub fn start(&mut self, entry_point: Option<u16>) {
         self.ppu.borrow_mut().start();
-        self.cpu.borrow_mut().start(None);
+        self.cpu.borrow_mut().start(entry_point);
         self.ppu.borrow_mut().next();
         self.ppu.borrow_mut().next();
         self.ppu.borrow_mut().next();
@@ -130,6 +133,96 @@ impl NesEmulator {
 
     /// Performs test execution against reference execution log to find descrepancies
     fn check_test(&mut self, cpu_status: crate::cpu::Status, ppu_status: crate::ppu::Status) {
-        //let current_line = self.test_file.unwrap().read_line().unwrap();
+        let mut current_line = String::new();
+        self.test_file.as_ref().map(|b| b.read_line(&mut current_line));
+
+        //let current_line = "C000  4C F5 C5  JMP $C5F5                       A:00 X:00 Y:00 P:24 SP:FD PPU:  0, 21 CYC:7";
+
+        let opcode = self.memory.borrow_mut().read_rom(cpu_status.program_counter);
+        let mut opcode_arg_1 = "  ".to_string();
+        let mut opcode_arg_2 = "  ".to_string();
+        if OPCODES[&opcode].len > 1 {
+            let tmp_string = format!("{:02x}", self.memory.borrow_mut().read_rom(cpu_status.program_counter + 1));
+            opcode_arg_1 = tmp_string.clone();
+        }
+        if OPCODES[&opcode].len > 2 {
+            let tmp_string = format!("{:02x}", self.memory.borrow_mut().read_rom(cpu_status.program_counter + 2));
+            opcode_arg_2 = tmp_string.clone();
+        }
+
+        let log_status = LogFileLine::new(current_line.as_str());
+        println!("{}", current_line);
+        println!("{:x}  {:02x} {} {}  {:30}  A:{:02x} X:{:02x} Y:{:02x} P:{:02x} SP:{:02x} PPU:{},{} CYC:{}",
+            cpu_status.program_counter,
+            opcode,
+            opcode_arg_1,
+            opcode_arg_2,
+            OPCODES[&opcode].syntax,
+            cpu_status.accumulator,
+            cpu_status.x_register,
+            cpu_status.y_register,
+            cpu_status.status_register,
+            cpu_status.stack_pointer,
+            ppu_status.col,
+            ppu_status.line,
+            cpu_status.total_cycles,
+        );
+
+        assert_eq!(cpu_status.program_counter, log_status.program_counter);
+        //assert_eq!(opcode, log_status.opcode);
+        assert_eq!(cpu_status.stack_pointer, log_status.stack_pointer);
+        assert_eq!(cpu_status.accumulator, log_status.accumulator);
+        assert_eq!(cpu_status.x_register, log_status.x_register);
+        assert_eq!(cpu_status.y_register, log_status.y_register);
+        assert_eq!(cpu_status.status_register, log_status.status_register);
+        assert_eq!(cpu_status.total_cycles, log_status.total_cycles);
+        //assert_eq!(ppu_status.col, log_status.col);
+        //assert_eq!(ppu_status.line, log_status.line);
+
+        if cpu_status.total_cycles > 30 {
+            panic!("Stop");
+        }
+
+        println!("");
+
+    }
+}
+
+struct LogFileLine {
+    pub program_counter: u16,
+    pub opcode: u8,
+    pub stack_pointer: u8,
+    pub accumulator: u8,
+    pub x_register: u8,
+    pub y_register: u8,
+    pub status_register: u8,
+    pub total_cycles: u32,
+    pub col: u16,
+    pub line: u16,
+
+}
+
+impl LogFileLine {
+    fn new(line: &str) -> LogFileLine {
+        let re = Regex::new(r"A:(?P<A>[0-9A-Fa-f]{2}) X:(?P<X>[0-9A-Fa-f]{2}) Y:(?P<Y>[0-9A-Fa-f]{2}) P:(?P<P>[0-9A-Fa-f]{2}) SP:(?P<SP>[0-9A-Fa-f]{2})").unwrap();
+        let result1 = re.captures(line).unwrap();
+        let re = Regex::new(r"CYC:(?P<CYC>[0-9A-Fa-f]+)").unwrap();
+        let result2 = re.captures(line).unwrap();
+        let re = Regex::new(r"PPU:[ ]*([0-9]+),[ ]*([0-9]+)").unwrap();
+        let result3 = re.captures(line).unwrap();
+
+        LogFileLine {
+            opcode: 0,
+            program_counter: u16::from_str_radix(&line[0..4], 16).unwrap(), //line[0..4].to_string().parse::<u16>().unwrap(),
+            stack_pointer: u8::from_str_radix(&result1["SP"], 16).unwrap(), //result1["SP"].to_string().parse::<u8>().unwrap(),
+            accumulator: u8::from_str_radix(&result1["A"], 16).unwrap(),
+            x_register: u8::from_str_radix(&result1["X"], 16).unwrap(),
+            y_register: u8::from_str_radix(&result1["Y"], 16).unwrap(),
+            status_register: u8::from_str_radix(&result1["P"], 16).unwrap(),
+            total_cycles: result2["CYC"].to_string().parse::<u32>().unwrap(),
+            col: result3[1].to_string().parse::<u16>().unwrap(),
+            line: result3[2].to_string().parse::<u16>().unwrap(),
+
+        }
     }
 }

@@ -6,8 +6,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct Status{
-    col: u16,
-    line: u16,
+    pub col: u16,
+    pub line: u16,
 }
 
 pub struct Ppu {

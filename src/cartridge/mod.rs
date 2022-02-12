@@ -56,40 +56,43 @@ impl Cartridge {
 
     /// Parse a rom
     pub fn parse_rom(&mut self, file_name: String) {
+        println!("Attemp to read file : {}", file_name);
         let file = File::open(file_name).unwrap();
         let mut buf_reader = BufReader::new(file);
         buf_reader = self.parse_header(buf_reader);
 
         println!("PRG Rom size is {}", self.prg_rom_size);
 
-        self.prg_rom = Vec::with_capacity(self.prg_rom_size);
-        self.chr_rom = Vec::with_capacity(self.chr_rom_size);
-        self.prg_ram = Vec::with_capacity(self.prg_ram_size);
+        self.prg_rom = vec![];
+        self.chr_rom = vec![];
+        self.prg_ram = vec![];
 
         if self.is_trainer {
             buf_reader
                 .by_ref()
                 .take(512)
                 .read_to_end(&mut self.trainer)
-                .expect("File too short, check you file for error");
+                .expect("File too short, check your file for error");
         }
 
         buf_reader
             .by_ref()
             .take(self.prg_rom_size as u64)
             .read_to_end(&mut self.prg_rom)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
         buf_reader
             .by_ref()
             .take(self.chr_rom_size as u64)
             .read_to_end(&mut self.chr_rom)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
 
         // Mapper 0 trick
-        if self.prg_rom_size == 16 * 1024 {
+        if self.prg_rom_size == 0x4000 {
+            println!("PRG Rom extension");
             let tmp_vec = self.prg_rom.clone();
             self.prg_rom.extend(tmp_vec.iter());
             self.prg_rom_size = self.prg_rom.len();
+            assert_eq!(self.prg_rom[0], self.prg_rom[0x4000]);
         }
         if self.chr_rom_size == 0x1000 {
             let tmp_vec = self.chr_rom.clone();
@@ -106,7 +109,7 @@ impl Cartridge {
             .by_ref()
             .take(4)
             .read_to_end(&mut self.magic)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
 
         println!(
             "Magic is {}-{}-{}-{}",
@@ -117,7 +120,7 @@ impl Cartridge {
             .by_ref()
             .take(1)
             .read_to_end(&mut tmp)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
         println!("Byte for prg_rom_size is {}", tmp[0]);
         self.prg_rom_size = (tmp[0] as usize) * 16 * 1024;
         let mut tmp: Vec<u8> = vec![];
@@ -125,57 +128,52 @@ impl Cartridge {
             .by_ref()
             .take(1)
             .read_to_end(&mut tmp)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
         self.chr_rom_size = (tmp[0] as usize) * 8 * 1024;
         let mut tmp: Vec<u8> = vec![];
         buf_reader
             .by_ref()
             .take(1)
             .read_to_end(&mut tmp)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
         self.f6 = tmp[0];
+        self.is_trainer = ((self.f6 >> 3) & 1 ) != 0;
         let mut tmp: Vec<u8> = vec![];
         buf_reader
             .by_ref()
             .take(1)
             .read_to_end(&mut tmp)
-            .expect("File too short, check you file for error");
-        self.is_trainer = if tmp[0] == 0 { false } else { true };
-        let mut tmp: Vec<u8> = vec![];
-        buf_reader
-            .by_ref()
-            .take(1)
-            .read_to_end(&mut tmp)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
         self.f7 = tmp[0];
+        self.is_playchoice = ((self.f7 >> 2) & 1 ) != 0;
         let mut tmp: Vec<u8> = vec![];
         buf_reader
             .by_ref()
             .take(1)
             .read_to_end(&mut tmp)
-            .expect("File too short, check you file for error");
-        self.is_playchoice = if tmp[0] == 0 { false } else { true };
-        let mut tmp: Vec<u8> = vec![];
-        buf_reader
-            .by_ref()
-            .take(1)
-            .read_to_end(&mut tmp)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
         self.prg_ram_size = (tmp[0] as usize) * 8 * 1024;
         let mut tmp: Vec<u8> = vec![];
         buf_reader
             .by_ref()
             .take(1)
             .read_to_end(&mut tmp)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
         self.f9 = tmp[0];
         let mut tmp: Vec<u8> = vec![];
         buf_reader
             .by_ref()
             .take(1)
             .read_to_end(&mut tmp)
-            .expect("File too short, check you file for error");
+            .expect("File too short, check your file for error");
         self.f10 = tmp[0];
+        // Read header padding bytes
+        let mut tmp: Vec<u8> = vec![];
+        buf_reader
+            .by_ref()
+            .take(5)
+            .read_to_end(&mut tmp)
+            .expect("File too short, check your file for error");
 
         self.mapper_id = (self.f7 as u16 & 0b11110000) + ((self.f6 as u16 & 0b11110000) >> 4);
 
