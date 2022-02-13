@@ -21,8 +21,8 @@ pub struct Ppu {
     register_w: bool,   // First or second write toggle, 1 bit
 
     // Sprite registers
-    primary_oam: Vec<u8>,
-    secondary_oam: Vec<u8>,
+    primary_oam: [u8; 0x100],
+    secondary_oam: [u8; 0x40],
     sprite_count: u8,
     sprite_fetcher_count: u8,
     secondary_oam_pointer: u8,
@@ -40,8 +40,8 @@ pub struct Ppu {
     ppuscroll: u16,
     ppuaddr: u8,
     ppudata: u8,
-    vram: Vec<u8>,
-    palette_vram: Vec<u8>,
+    vram: [u8; 0x400],
+    palette_vram: [u8; 0x20],
 }
 
 impl Ppu {
@@ -58,8 +58,8 @@ impl Ppu {
             register_w: false,  // First or second write toggle, 1 bit
 
             // Sprite registers
-            primary_oam: Vec::with_capacity(0x100),
-            secondary_oam: Vec::with_capacity(0x40),
+            primary_oam: [0; 0x100],
+            secondary_oam: [0; 0x40],
             sprite_count: 0,
             sprite_fetcher_count: 0,
             secondary_oam_pointer: 0,
@@ -77,8 +77,8 @@ impl Ppu {
             ppuscroll: 0,
             ppuaddr: 0,
             ppudata: 0,
-            vram: Vec::with_capacity(0x2000),
-            palette_vram: Vec::with_capacity(0x20),
+            vram: [0; 0x400],
+            palette_vram: [0; 0x20],
         }
     }
 
@@ -144,32 +144,44 @@ impl Ppu {
         }
     }
 
-    pub fn read_0x2002(&self) -> u8 {
-        0
+    /// Update PPU internal register when CPU read 0x2002 memory address
+    pub fn read_0x2002(&mut self) -> u8 {
+        self.register_w = false;
+        self.ppuaddr = 0;
+        let value = self.ppustatus;
+        self.ppustatus = value & 0b1111111;
+        value
     }
 
+    /// Read PPU internal register at 0x2004 memory address - read OAM at oamaddr
     pub fn read_0x2004(&self) -> u8 {
-        0
+        self.primary_oam[self.oamaddr as usize]
     }
 
     pub fn read_0x2007(&self) -> u8 {
         0
     }
 
-    pub fn write_0x2000(&self, value: u8) {
-
+    /// Update PPU internal register when CPU write 0x2000 memory address
+    pub fn write_0x2000(&mut self, value: u8) {
+        self.ppuctrl = value;
+        let t = self.register_t & 0b111001111111111;
+        self.register_t = t | ((value as u16 & 0b11) << 10);
     }
 
-    pub fn write_0x2001(&self, value: u8) {
-
+    /// Update PPU internal register when CPU write 0x2001 memory address - ppumask
+    pub fn write_0x2001(&mut self, value: u8) {
+        self.ppumask = value;
     }
 
-    pub fn write_0x2003(&self, value: u8) {
-
+    /// Update PPU internal register when CPU write 0x2003 memory address - oamaddr
+    pub fn write_0x2003(&mut self, value: u8) {
+        self.oamaddr = value;
     }
 
-    pub fn write_0x2004(&self, value: u8) {
-
+    /// Update PPU internal register when CPU write 0x2004 memory address - read OAM at oamaddr
+    pub fn write_0x2004(&mut self, value: u8) {
+        self.primary_oam[self.oamaddr as usize] = value;
     }
 
     pub fn write_0x2005(&self, value: u8) {
