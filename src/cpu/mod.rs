@@ -880,10 +880,10 @@ impl Cpu {
 
     /// Function call for ASL $xxxx, X. Absolute, X///
     fn fn_0x1e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_x_value(true);
+        let value = self.get_absolute_x_value(false);
         self.carry = (value >> 7) != 0;
         let value = (value << 1) & 0b11111111;
-        self.set_absolute_x(value, true);
+        self.set_absolute_x(value, false);
         self.set_flags_nz(value);
         (3, 7)
     }
@@ -1387,14 +1387,14 @@ impl Cpu {
 
     /// Function call for EOR ($xx), Y. Indirect, Y
     fn fn_0x51(&mut self) -> (u16, u32) {
-        self.accumulator ^= self.get_indirect_y_value(false);
+        self.accumulator ^= self.get_indirect_y_value(true);
         self.set_flags_nz(self.accumulator);
         (2, 5)
     }
 
     /// Function call for EOR ($xx), Y. Indirect, Y
     fn fn_0x51_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
-        self.accumulator ^= self.get_indirect_y_value(true);
+        self.accumulator ^= self.get_indirect_y_value(false);
         self.set_flags_nz(self.accumulator);
         (2, 5)
     }
@@ -1651,7 +1651,7 @@ impl Cpu {
     /// Function call for LSR $xx. Zero Page
     fn fn_0x46(&mut self) -> (u16, u32) {
         let value = self.get_zero_page_value();
-        self.carry = value == 1;
+        self.carry = (value & 1) == 1;
         let value = value >> 1;
         self.set_zero_page(value);
         self.set_flags_nz(value);
@@ -1661,7 +1661,7 @@ impl Cpu {
     /// Function call for LSR $xx, X. Zero Page, X
     fn fn_0x56(&mut self) -> (u16, u32) {
         let value = self.get_zero_page_x_value();
-        self.carry = value == 1;
+        self.carry = (value & 1) == 1;
         let value = value >> 1;
         self.set_zero_page_x(value);
         self.set_flags_nz(value);
@@ -1671,7 +1671,7 @@ impl Cpu {
     /// Function call for LSR $xxxx. Absolute
     fn fn_0x4e(&mut self) -> (u16, u32) {
         let value = self.get_absolute_value();
-        self.carry = value == 1;
+        self.carry = (value & 1) == 1;
         let value = value >> 1;
         self.set_absolute(value);
         self.set_flags_nz(value);
@@ -1681,7 +1681,7 @@ impl Cpu {
     /// Function call for LSR $xxxx, X. Absolute, X
     fn fn_0x5e(&mut self) -> (u16, u32) {
         let value = self.get_absolute_x_value(true);
-        self.carry = value == 1;
+        self.carry = (value & 1) == 1;
         let value = value >> 1;
         self.set_absolute_x(value, true);
         self.set_flags_nz(value);
@@ -1691,7 +1691,7 @@ impl Cpu {
     /// Function call for LSR $xxxx, X. Absolute, X
     fn fn_0x5e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
         let value = self.get_absolute_x_value(false);
-        self.carry = value == 1;
+        self.carry = (value & 1) == 1;
         let value = value >> 1;
         self.set_absolute_x(value, false);
         self.set_flags_nz(value);
@@ -2067,8 +2067,9 @@ impl Cpu {
     ///     AND
     fn fn_0x3b(&mut self) -> (u16, u32) {
         let val = self.get_absolute_y_value(false);
-        let val = (val << 1) | (self.carry as u8);
-        self.carry = (val >> 8) != 0;
+        let carry = self.carry as u8;
+        self.carry = (val >> 7) != 0;
+        let val = (val << 1) | (carry);
         self.set_absolute_y(val, false);
         self.fn_0x39_with_no_additionnal_cycles(); // AND
         (3, 7)
@@ -2080,8 +2081,9 @@ impl Cpu {
     ///     AND
     fn fn_0x23(&mut self) -> (u16, u32) {
         let val = self.get_indirect_x_value();
-        let val = (val << 1) | (self.carry as u8);
-        self.carry = (val >> 8) != 0;
+        let carry = self.carry as u8;
+        self.carry = (val >> 7) != 0;
+        let val = (val << 1) | (carry);
         self.set_indirect_x(val);
         self.fn_0x21(); // AND
         (2, 8)
@@ -2093,8 +2095,9 @@ impl Cpu {
     ///     AND
     fn fn_0x33(&mut self) -> (u16, u32) {
         let val = self.get_indirect_y_value(false);
-        let val = (val << 1) | (self.carry as u8);
-        self.carry = (val >> 8) != 0;
+        let carry = self.carry as u8;
+        self.carry = (val >> 7) != 0;
+        let val = (val << 1) | (carry);
         self.set_indirect_y(val, false);
         self.fn_0x31_with_no_additionnal_cycles(); // AND
         (2, 8)
