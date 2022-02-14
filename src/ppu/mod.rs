@@ -13,6 +13,7 @@ pub struct Status{
 pub struct Ppu {
     screen: screen::Screen,
     cartridge: Rc<RefCell<Cartridge>>,
+    pixel_generator: PixelGenerator,
 
     // internal registers
     register_v: u16,    // Current VRAM address, 15 bits
@@ -50,7 +51,7 @@ impl Ppu {
         Ppu {
             screen : screen::Screen::new(sdl_context),
             cartridge: cartridge,
-
+            pixel_generator: PixelGenerator::new(),
             // internal registers
             register_v: 0,      // Current VRAM address, 15 bits
             register_t: 0,      // Temporary VRAM address, 15 bits. Can be thought of as address of top left onscreen tile
@@ -95,8 +96,112 @@ impl Ppu {
         println!("PPU started, screen initialized");
     }
 
+    /// Next function that implement the almost exact PPU rendering workflow
+    pub fn next(&mut self) -> bool {
+        // Pixel rendering
+        match self.line {
+            0..=239 | 261 => {
+                if self.col > 0 and self.col < 257 {
+                    if self.line < 240 and self.is_bg_rendering_enabled() {
+                        pixel_color = self.pixel_generator.compute_next_pixel();
+                        instances.nes.display.fill(pixel_color, (((self.col - 1) * self.scale, self.line * self.scale), (self.scale,self.scale)));
+                    }
+                }
+                // Nothing happens during Vblank
+                self.next_background_evaluation();
+                self.next_sprite_evaluation();
+            },
+            241 => {
+                if self.col == 1 {
+                    pygame.display.flip();
+                    self.set_vblank();
+                    if (self.ppuctrl >> 7) & 1 {
+                        instances.nes.raise_nmi();
+                    }
+                }
+            },
+            261 => {
+                if self.col == 1 {
+                    self.clear_vblank();
+                    self.clear_sprite0_hit();
+                    self.clear_sprite_overflow();
+                }
+            },
+        }
+
+        self.col  = (self.col + 1) % 341
+        if self.col == 0:
+            // End of scan line
+            self.line = (self.line + 1) % 262
+            // TODO : Implement 0,0 cycle skipped on odd frame
+
+        (self.col, self.line) == (0, 0)
+    }
+
     /// Execute next instruction
-    pub fn next(&self) {
+    pub fn next_background_evalutation(&mut self) {
+        if self.line < 240 || self.line == 261 { // Normal line
+            if self.col > 0 && self.col < 257 {
+                self.load_tile_data();
+            }
+            if self.col == 257 {
+                self.copy_hor_t_to_hor_v();
+            }
+            if self.col > 320 && self.col < 337 {
+                self.load_tile_data();
+            }
+        }
+        if self.is_rendering_enabled() && self.line == 261 && self.col > 279 && self.col < 305 {
+            self.copy_vert_t_to_vert_v();
+        }
+    }
+
+    /// 8 cycle operation to load next tile data
+    pub fn load_tile_data(&mut self) {
+        match self.col % 8 {
+            1 => {
+                // read NT Byte for N+2 tile
+                tile_address = 0x2000 | (self.register_v & 0xfff); // Is it NT or tile address ?
+                nt_byte = self.read_ppu_memory(tile_address);
+                self.pixel_generator.set_nt_byte(nt_byte);
+            },
+            3 => {
+                // read AT Byte for N+2 tile
+                attribute_address = 0x23c0 | (self.register_v & 0xC00) | ((self.register_v >> 4) & 0x38) | ((self.register_v >> 2) & 0x07);
+                at_byte = self.read_ppu_memory(attribute_address);
+                self.pixel_generator.set_at_byte(at_byte);
+            },
+            5 => {
+                // read low BG Tile Byte for N+2 tile
+                chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
+                fine_y = self.register_v >> 12;
+                tile_address = self.pixel_generator.bg_nt_table_register[-1];
+                low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
+                self.pixel_generator.set_low_bg_tile_byte(low_bg_tile_byte);
+            },
+            7 => {
+                // read high BG Tile Byte for N+2 tile
+                chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
+                fine_y = self.register_v >> 12;
+                tile_address = self.pixel_generator.bg_nt_table_register[-1];
+                high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
+                self.pixel_generator.set_high_bg_tile_byte(high_bg_tile_byte);
+            },
+            0 => {
+                self.pixel_generator.shift_registers();
+                if self.col == 256 {
+                    self.inc_vert_v();
+                }
+                else {
+                    self.inc_hor_v();
+                }
+            },
+            _ => (),
+        }
+    }
+
+    /// Handle the sprite evaluation process
+    pub fn next_sprite_evaluation(&mut self) {
 
     }
 
@@ -170,7 +275,7 @@ impl Ppu {
             value = self.ppudata;
         }
         self.read_or_write_0x2007();
-        self.ppuaddr += if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20};
+        self.ppuaddr += self.get_ram_step_forward();
         value
     }
 
@@ -228,12 +333,12 @@ impl Ppu {
     pub fn write_0x2007(&mut self, value: u8) {
         self.write_ppu_memory(self.ppuaddr % 0x4000, value); // Address above 0x3fff are mirrored down
         self.read_or_write_0x2007();
-        self.ppuaddr += if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20};
+        self.ppuaddr += self.get_ram_step_forward();
     }
 
     fn read_or_write_0x2007(&mut self) {
         if not self.is_rendering_enabled {
-            self.register_v += if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20};
+            self.register_v += self.get_ram_step_forward();
         }
         else {
             self.inc_vert_v();
@@ -241,6 +346,111 @@ impl Ppu {
         }
     }
 
+    /// Write OAM with memory from main vram passed in value
+    fn write_oamdma(&mut self, value: Vec<u8>) {
+        self.primary_oam[self.oamaddr:] = value
+    }
+
+    /// Increment Horizontal part of v register
+    ///
+    /// Implementation base on nevdev PPU_scrolling#Wrapping around
+    fn inc_hor_v(&mut self) {
+        if (self.register_v & 0x1f) == 31 {
+            self.register_v &= 0b111111111100000;   // hor_v = 0
+            self.register_v ^= 0x400;               // switch horizontal nametable
+        }
+        else {
+            self.register_v += 1;
+        }
+    }
+
+    /// Increment Vertical part of v register
+    ///
+    /// Implementation base on nevdev PPU_scrolling#Wrapping around
+    fn inc_vert_v(&mut self) {
+        if (self.register_v & 0x7000) != 0x7000 {
+            self.register_v += 0x1000;
+        }
+        else {
+            self.register_v &= 0xfff;                                       // Fine Y = 0
+            let mut coarse_ycoarse_y = (self.register_v & 0x3e0 ) >> 5;     // coarse_y = vert_v
+            if coarse_y == 29 {
+                coarse_y = 0;
+                self.register_v ^= 0x800;                                   // switch vertical nametable
+            }
+            else if coarse_y == 31 {
+                coarse_y = 0;
+            }
+            else {
+                coarse_y += 1;
+            }
+            self.register_v = (self.register_v & 0b111110000011111) | (coarse_y << 5);
+        }
+    }
+
+    /// Copy hor part of t to v
+    fn copy_hor_t_to_hor_v(self) {
+        self.register_v = (self.register_v & 0b111101111100000) | (self.register_t & 0b000010000011111);
+    }
+
+    /// Copy hor part of t to v///
+    fn copy_vert_t_to_vert_v(&mut self) {
+        self.register_v = (self.register_v & 0b000010000011111) | (self.register_t & 0b111101111100000);
+    }
+
+    fn is_rendering_enabled(&self) -> bool {
+        /// Return 1 is rendering is enabled, 0 otherwise///
+        self.is_bg_rendering_enabled() and self.is_sprite_rendering_enabled()
+    }
+
+    /// Return 1 is rendering is enabled, 0 otherwise
+    fn is_bg_rendering_enabled(&self) -> bool {
+        (self.ppumask >> 3) & 1
+    }
+
+    /// Return 1 is rendering is enabled, 0 otherwise
+    fn is_sprite_rendering_enabled(&self) -> bool {
+        (self.ppumask >> 4) & 1
+    }
+
+    /// RAM step foward on bus access depending on PPUCTRL bu 1
+    fn get_ram_step_forward(&self) -> u8 {
+        if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20}
+    }
+
+    // https://wiki.nesdev.org/w/index.php?title=PPU_registers
+    // https://bugzmanov.github.io/nes_ebook/chapter_6_4.html
+
+    /// Set vblank bit in ppustatus register
+    /// TODO : Vlbank status should be cleared after reading by CPU
+    fn set_vblank(&mut self) {
+        self.ppustatus |= 0b10000000;
+    }
+
+    /// Clear vblank bit in ppustatus register
+    fn clear_vblank(&mut self) {
+        self.ppustatus &= 0b11111111;
+    }
+
+    /// Set sprite 0 bit in ppustatus register
+    fn set_sprite0_hit(&mut self) {
+        self.ppustatus |= 0b01000000;
+    }
+
+    /// Clear sprite 0 bit in ppustatus register
+    fn clear_sprite0_hit(&mut self) {
+        self.ppustatus &= 0b10111111;
+    }
+
+    /// Set sprite overflow bit in ppustatus register
+    fn set_sprite_overflow(&mut self) {
+        self.ppustatus |= 0b00100000;
+    }
+
+    /// Clear sprite overflow bit in ppustatus register
+    fn clear_sprite_overflow(&mut self) {
+        self.ppustatus &= 0b11011111;
+    }
     /// Return a dictionnary containing the current PPU Status. Usefull for debugging
     pub fn get_status(&self) -> Status {
         Status {
@@ -248,4 +458,92 @@ impl Ppu {
             line: self.line,
         }
     }
+}
+
+struct PixelGenerator {
+    // Start with two empty tiles
+    bg_palette_register: Vec<u8>,
+    bg_low_byte_table_register: Vec<u8>,
+    bg_high_byte_table_register: Vec<u8>,
+    bg_attribute_table_register: Vec<u8>,
+    bg_nt_table_register: Vec<u8>,
+
+    sprite_low_byte_table_register: Vec<u8>,
+    sprite_high_byte_table_register: Vec<u8>,
+    sprite_attribute_table_register: Vec<u8>,
+    sprite_x_coordinate_table_register: Vec<u8>,
+}
+
+impl PixelGenerator {
+    pub fn new() -> PixelGenerator {
+        bg_palette_register: vec![],
+        bg_low_byte_table_register: vec![],
+        bg_high_byte_table_register: vec![],
+        bg_attribute_table_register: vec![],
+        bg_nt_table_register: vec![],
+
+        sprite_low_byte_table_register: vec![],
+        sprite_high_byte_table_register: vec![],
+        sprite_attribute_table_register: vec![],
+        sprite_x_coordinate_table_register: vec![],
+    }
+
+    pub fn compute_next_pixel(&mut self) -> Rgb {
+        Rgb {
+            r: 0,
+            g: 0,
+            b: 0,
+        }
+    }
+
+    /// Compute the elements for the bg pixel
+    fn compute_bg_pixel(&mut self) -> (u8, u8) {
+        (0, 0)
+    }
+
+    /// Compute the elements for the sprite pixel if there is one at that position
+    fn compute_sprite_pixel(&mut self) -> (u8, u8, u8) {
+
+    }
+
+    /// Implement PPU Priority Multiplexer decision table
+    fn multiplexer_decision(&mut self) -> Rgb {
+
+    }
+
+    /// Shift registers every 8 cycles
+    pub fn shift_registers(&mut self) {
+
+    }
+
+    /// Reset the sprite registers
+    pub fn clear_sprite_registers(&mut self) {
+
+    }
+
+    /// Set nt_byte into registers
+    pub fn set_nt_byte(&mut self, nt_byte: u8) {
+
+    }
+
+    /// Set at_byte into registers
+    pub fn set_at_byte(&mut self, at_byte: u8) {
+
+    }
+
+    /// Set low_bg_tile_byte into registers
+    pub fn set_low_bg_tile_byte(&mut self, low_bg_tile_byte: u8) {
+
+    }
+
+    /// Set high_bg_tile_byte into registers
+    pub fn set_high_bg_tile_byte(&mut self, high_bg_tile_byte: u8) {
+
+    }
+}
+
+struct Rgb {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
 }
