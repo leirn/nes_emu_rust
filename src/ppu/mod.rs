@@ -158,8 +158,20 @@ impl Ppu {
         self.primary_oam[self.oamaddr as usize]
     }
 
-    pub fn read_0x2007(&self) -> u8 {
-        0
+    /// Read PPU internal register at 0x2007 memory address
+    pub fn read_0x2007(&mut self) -> u8 {
+        let mut value: u8;
+        if self.ppuaddr % 0x4000 < 0x3f00 { // Delayed buffering requiring dummy read
+            value = self.ppudata;
+            self.ppudata = self.read_ppu_memory(self.ppuaddr % 0x4000); // Address above 0x3fff are mirrored down
+        }
+        else {
+            self.ppudata = self.read_ppu_memory(self.ppuaddr % 0x4000); // Address above 0x3fff are mirrored down
+            value = self.ppudata;
+        }
+        self.read_or_write_0x2007();
+        self.ppuaddr += if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20};
+        value
     }
 
     /// Update PPU internal register when CPU write 0x2000 memory address
@@ -184,16 +196,49 @@ impl Ppu {
         self.primary_oam[self.oamaddr as usize] = value;
     }
 
-    pub fn write_0x2005(&self, value: u8) {
-
+    /// Update PPU internal register when CPU write 0x2005 memory address
+    pub fn write_0x2005(&mut self, value: u8) {
+        self.ppuscroll = ((self.ppuscroll << 8 ) + value as u16 ) & 0xffff;
+        if self.register_w == false {
+            self.register_t = (self.register_t & 0b111111111100000) | ((value as u16) >> 5);
+            self.register_x = value & 0b111;
+            self.register_w = true;
+        }
+        else {
+            self.register_t = (self.register_t & 0b000110000011111) | ((value as u16 & 0b11111000) << 2) | ((value as u16 & 0b111) << 12);
+            self.register_w = false;
+        }
     }
 
-    pub fn write_0x2006(&self, value: u8) {
-
+    /// Update PPU internal register when CPU write 0x2006 memory address
+    pub fn write_0x2006(&mut self, value: u8) {
+        self.ppuaddr = ((self.ppuaddr << 8 ) + value as u16 ) & 0xffff;
+        if self.register_w == false {
+            self.register_t = (self.register_t & 0b000000011111111) | ((value as u16 & 0b00111111) << 8);
+            self.register_w = true;
+        }
+        else {
+            self.register_t = (self.register_t & 0b111111100000000) | value as u16;
+            self.register_v = self.register_t;
+            self.register_w = false;
+        }
     }
 
-    pub fn write_0x2007(&self, value: u8) {
+    /// Write PPU internal register at 0x2007 memory address
+    pub fn write_0x2007(&mut self, value: u8) {
+        self.write_ppu_memory(self.ppuaddr % 0x4000, value); // Address above 0x3fff are mirrored down
+        self.read_or_write_0x2007();
+        self.ppuaddr += if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20};
+    }
 
+    fn read_or_write_0x2007(&mut self) {
+        if not self.is_rendering_enabled {
+            self.register_v += if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20};
+        }
+        else {
+            self.inc_vert_v();
+            self.inc_hor_v();
+        }
     }
 
     /// Return a dictionnary containing the current PPU Status. Usefull for debugging
