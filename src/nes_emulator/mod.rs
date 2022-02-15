@@ -158,8 +158,8 @@ impl NesEmulator {
             cpu_status.y_register,
             cpu_status.status_register,
             cpu_status.stack_pointer,
-            ppu_status.col,
             ppu_status.line,
+            ppu_status.col,
             cpu_status.total_cycles,
         );
 
@@ -171,8 +171,8 @@ impl NesEmulator {
         assert_eq!(cpu_status.y_register, log_status.y_register);
         assert_eq!(cpu_status.status_register, log_status.status_register);
         assert_eq!(cpu_status.total_cycles, log_status.total_cycles);
-        //assert_eq!(ppu_status.col, log_status.col);
-        //assert_eq!(ppu_status.line, log_status.line);
+        assert_eq!(ppu_status.col, log_status.col);
+        assert_eq!(ppu_status.line, log_status.line);
 
         println!();
 
@@ -210,8 +210,8 @@ impl LogFileLine {
             y_register: u8::from_str_radix(&result1["Y"], 16).unwrap(),
             status_register: u8::from_str_radix(&result1["P"], 16).unwrap(),
             total_cycles: result2["CYC"].to_string().parse::<u32>().unwrap(),
-            col: result3[1].to_string().parse::<u16>().unwrap(),
-            line: result3[2].to_string().parse::<u16>().unwrap(),
+            line: result3[1].to_string().parse::<u16>().unwrap(),
+            col: result3[2].to_string().parse::<u16>().unwrap(),
         }
     }
 }

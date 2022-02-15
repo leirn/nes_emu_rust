@@ -43,7 +43,7 @@ pub struct Ppu {
     ppuscroll: u16,
     ppuaddr: u16,
     ppudata: u8,
-    vram: [u8; 0x400],
+    vram: [u8; 0x800],
     palette_vram: [u8; 0x20],
 
     // Pixel generator part
@@ -94,7 +94,7 @@ impl Ppu {
             ppuscroll: 0,
             ppuaddr: 0,
             ppudata: 0,
-            vram: [0; 0x400],
+            vram: [0; 0x800],
             palette_vram: [0; 0x20],
 
             // Pixel generator variables
@@ -128,7 +128,7 @@ impl Ppu {
     pub fn next(&mut self) {
         // Pixel rendering
         match self.line {
-            0..=239u16 | 261u16 => {
+            0..=239u16 => {
                 if self.col > 0 && self.col < 257 {
                     if self.line < 240 && self.is_bg_rendering_enabled() {
                         let pixel_color = self.compute_next_pixel();
@@ -149,12 +149,17 @@ impl Ppu {
                 }
             },
             261u16 => {
+                if self.col > 0 && self.col < 257 {
+                    self.next_background_evaluation();
+                    self.next_sprite_evaluation();
+                }
                 if self.col == 1 {
                     self.clear_vblank();
                     self.clear_sprite0_hit();
                     self.clear_sprite_overflow();
                 }
             },
+            _ => ()
         }
 
         self.col  = (self.col + 1) % 341;
@@ -206,7 +211,7 @@ impl Ppu {
             },
             5 => {
                 // read low BG Tile Byte for N+2 tile
-                let chr_bank = (((self.ppuctrl >> 4) & 1) * 0x1000) as u16;
+                let chr_bank = ((self.ppuctrl as u16 >> 4) & 1) * 0x1000;
                 let fine_y = self.register_v >> 12;
                 let tile_address = *self.bg_nt_table_register.back().unwrap() as u16;
                 let low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
@@ -214,7 +219,7 @@ impl Ppu {
             },
             7 => {
                 // read high BG Tile Byte for N+2 tile
-                let chr_bank = (((self.ppuctrl >> 4) & 1) * 0x1000) as u16;
+                let chr_bank = ((self.ppuctrl as u16 >> 4) & 1) * 0x1000;
                 let fine_y = self.register_v >> 12;
                 let tile_address = *self.bg_nt_table_register.back().unwrap() as u16;
                 let high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
@@ -252,7 +257,8 @@ impl Ppu {
             // Fetch next sprite first byte (y coordinate)
             let sprite_y_coordinate = self.primary_oam[(4 * self.sprite_count) as usize];
             self.secondary_oam[(self.secondary_oam_pointer * 4) as usize] = sprite_y_coordinate;
-            if self.line in sprite_y_coordinate..=(sprite_y_coordinate + 7) {
+            let sprite_y_coordinate = sprite_y_coordinate as u16;
+            if self.line >= sprite_y_coordinate && self.line < sprite_y_coordinate + 7 {
                 // Le sprite traverse la scanline, on le copy dans  le secondary oam
                 self.secondary_oam[(self.secondary_oam_pointer * 4 + 1) as usize] = self.primary_oam[(4 * self.sprite_count + 1) as usize];
                 self.secondary_oam[(self.secondary_oam_pointer * 4 + 2) as usize] = self.primary_oam[(4 * self.sprite_count + 2) as usize];
@@ -292,7 +298,7 @@ impl Ppu {
                         fine_y = 7 - fine_y;
                     }
 
-                    let chr_bank = ((self.ppuctrl >> 3) & 1) * 0x1000 as u16;
+                    let chr_bank = ((self.ppuctrl as u16 >> 3) & 1) * 0x1000;
                     let low_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16u16 * tile_address + fine_y + flipping_offset);
 
                     self.sprite_attribute_table_register.push_back(attribute);
@@ -308,7 +314,8 @@ impl Ppu {
                     self.sprite_high_byte_table_register.push_back(high_sprite_tile_byte);
 
                     self.sprite_fetcher_count += 1;
-                }
+                },
+                _ => ()
             }
         }
     }
@@ -455,8 +462,11 @@ impl Ppu {
     }
 
     /// Write OAM with memory from main vram passed in value
-    fn write_oamdma(&mut self, value: Vec<u8>) {
-        self.primary_oam[self.oamaddr:] = value;
+    fn write_oamdma(&mut self, value: &[u8; 0x100]) {
+        let max = 0xff - self.oamaddr;
+        for i in 0..=max {
+            self.primary_oam[(self.oamaddr + i) as usize] = value[i as usize];
+        }
     }
 
     /// Increment Horizontal part of v register
