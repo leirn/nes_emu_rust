@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::collections::VecDeque;
 
-pub struct Status{
+pub struct Status {
     pub col: u16,
     pub line: u16,
 }
@@ -573,7 +573,6 @@ impl Ppu {
         }
     }
 }
-
 
 impl Ppu {
     // Return a color_index which is a palette index
