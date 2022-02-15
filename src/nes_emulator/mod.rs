@@ -21,6 +21,7 @@ pub struct NesEmulator {
     apu: Rc<RefCell<crate::apu::Apu>>,
     ppu: Rc<RefCell<crate::ppu::Ppu>>,
     cpu: Rc<RefCell<crate::cpu::Cpu>>,
+    interrupt_bus: Rc<RefCell<crate::bus::Interrupt>>,
     lines: Vec<String>,
     line_index: usize,
     parity: bool,
@@ -39,6 +40,8 @@ impl NesEmulator {
         let memory = Rc::new(RefCell::new(crate::bus::memory::Memory::new(Rc::clone(&cartridge), Rc::clone(&ppu), Rc::clone(&apu))));
         let cpu = Rc::new(RefCell::new(crate::cpu::Cpu::new(Rc::clone(&memory))));
 
+        let interrupt_bus: Rc::new(RefCell::new(crate::bus::Interrupt::new()));
+
         NesEmulator{
             is_nmi: false,
             is_irq: false,
@@ -52,6 +55,7 @@ impl NesEmulator {
             apu: apu,
             ppu: ppu,
             cpu: cpu,
+            interrupt_bus: interrupt_bus,
             lines: vec![],
             line_index: 0,
             parity: false,
@@ -70,12 +74,10 @@ impl NesEmulator {
 
         while continuer {
             if !self.pause {
-                if self.is_nmi {
-                    self.is_nmi = false;
+                if self.interrupt_bus.borrow_mut().check_and_clear_nmi() {
                     self.cpu.borrow_mut().nmi();
                 }
-                if self.is_irq && self.cpu.borrow_mut().get_interrupt_flag() {
-                    self.is_irq = false;
+                if self.interrupt_bus.borrow_mut().check_and_clear_irq() && self.cpu.borrow_mut().get_interrupt_flag() {
                     self.cpu.borrow_mut().irq();
                 }
                 if self.parity {
@@ -89,15 +91,15 @@ impl NesEmulator {
                 // Odd or even cycle. Needed to trigger the apu one every two cpu cycles.
                 self.parity = !self.parity;
 
-                if self.is_test_mode && self.cpu.borrow_mut().get_remaining_cycles() == 0 {
+                let is_frame_updated = self.interrupt.borrow_mut().check_and_clear_frame_updated();
+                if is_frame_updated && self.cpu.borrow_mut().get_remaining_cycles() == 0 {
                     let cpu_status = self.cpu.borrow_mut().get_status();
                     let ppu_status = self.ppu.borrow_mut().get_status();
                     self.check_test(cpu_status, ppu_status);
                 }
 
-                if self.is_frame_updated {
+                if is_frame_updated {
                     self.clock.tick(60);
-                    self.is_frame_updated = false;
                 }
             }
 
@@ -118,21 +120,6 @@ impl NesEmulator {
     /// Toggles pause on the emulator execution
     pub fn toggle_pause(&mut self) {
         self.pause = !self.pause;
-    }
-
-    /// Raises an NMI interrupt
-    pub fn raise_nmi(&mut self) {
-        self.is_nmi = true;
-    }
-
-    /// Raises an IRQ interrupt
-    pub fn raise_irq(&mut self) {
-        self.is_irq = true;
-    }
-
-    /// Set is_frame_updated to true
-    pub fn set_frame_updated(&mut self) {
-        self.is_frame_updated = true;
     }
 
     /// Activate test mode and set the execution reference file
@@ -231,7 +218,6 @@ impl LogFileLine {
             total_cycles: result2["CYC"].to_string().parse::<u32>().unwrap(),
             col: result3[1].to_string().parse::<u16>().unwrap(),
             line: result3[2].to_string().parse::<u16>().unwrap(),
-
         }
     }
 }

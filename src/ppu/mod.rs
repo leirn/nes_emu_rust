@@ -2,6 +2,7 @@
 //! NSTC implementation
 mod screen;
 use crate::cartridge::Cartridge;
+use crate::bus::interrupt::Interrupt;
 use std::cell::RefCell;
 use std::rc::Rc;
 use sdl2::pixels::Color;
@@ -14,6 +15,7 @@ pub struct Status{
 
 pub struct Ppu {
     screen: screen::Screen,
+    interrupt_bus: Rc<RefCell<Interrupt>>,
     cartridge: Rc<RefCell<Cartridge>>,
 
     // internal registers
@@ -61,10 +63,12 @@ pub struct Ppu {
 
 impl Ppu {
     /// Instantiate the PPU
-    pub fn new(cartridge: Rc<RefCell<Cartridge>>, sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Ppu {
+    pub fn new(cartridge: Rc<RefCell<Cartridge>>, sdl_context: Rc<RefCell<sdl2::Sdl>>, interrupt_bus: Rc<RefCell<Interrupt>>) -> Ppu {
         Ppu {
             screen : screen::Screen::new(sdl_context),
             cartridge: cartridge,
+            interrupt_bus: interrupt_bus,
+
             // internal registers
             register_v: 0,      // Current VRAM address, 15 bits
             register_t: 0,      // Temporary VRAM address, 15 bits. Can be thought of as address of top left onscreen tile
@@ -122,12 +126,12 @@ impl Ppu {
     }
 
     /// Next function that implement the almost exact PPU rendering workflow
-    pub fn next(&mut self) -> bool {
+    pub fn next(&mut self) {
         // Pixel rendering
         match self.line {
             0..=239 | 261 => {
-                if self.col > 0 and self.col < 257 {
-                    if self.line < 240 and self.is_bg_rendering_enabled() {
+                if self.col > 0 && self.col < 257 {
+                    if self.line < 240 && self.is_bg_rendering_enabled() {
                         let pixel_color = self.compute_next_pixel();
                         self.screen.update_pixel(pixel_color, self.col - 1, self.line);
                     }
@@ -140,8 +144,8 @@ impl Ppu {
                 if self.col == 1 {
                     self.screen.present();
                     self.set_vblank();
-                    if (self.ppuctrl >> 7) & 1 {
-                        instances.nes.raise_nmi();
+                    if self.is_nmi_bit_set() {
+                        self.interrupt_bus.borrow_mut().raise_nmi();
                     }
                 }
             },
@@ -160,11 +164,17 @@ impl Ppu {
             self.line = (self.line + 1) % 262
             // TODO : Implement 0,0 cycle skipped on odd frame
 
-        (self.col, self.line) == (0, 0)
+        if (self.col, self.line) == (0, 0) {
+            self.interrupt_bus.borrow_mut().set_frame_updated();
+            if self.is_odd_frame {
+                self.col = 1;
+            }
+            self.is_odd_frame = !self.is_odd_frame;
+        }
     }
 
     /// Execute next instruction
-    pub fn next_background_evalutation(&mut self) {
+    pub fn next_background_evaluation(&mut self) {
         if self.line < 240 || self.line == 261 { // Normal line
             if self.col > 0 && self.col < 257 {
                 self.load_tile_data();
@@ -515,6 +525,11 @@ impl Ppu {
     /// RAM step foward on bus access depending on PPUCTRL bu 1
     fn get_ram_step_forward(&self) -> u8 {
         if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20}
+    }
+
+    /// RAM step foward on bus access depending on PPUCTRL bu 1
+    fn is_nmi_bit_set(&self) -> bool {
+        (self.ppuctrl >> 7) & 1 != 0
     }
 
     // https://wiki.nesdev.org/w/index.php?title=PPU_registers
