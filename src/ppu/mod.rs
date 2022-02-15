@@ -252,7 +252,7 @@ impl Ppu {
             // Fetch next sprite first byte (y coordinate)
             let sprite_y_coordinate = self.primary_oam[(4 * self.sprite_count) as usize];
             self.secondary_oam[(self.secondary_oam_pointer * 4) as usize] = sprite_y_coordinate;
-            if self.line in sprite_y_coordinate..=(sprite_y_coordinate + 7)) {
+            if self.line in sprite_y_coordinate..=(sprite_y_coordinate + 7) {
                 // Le sprite traverse la scanline, on le copy dans  le secondary oam
                 self.secondary_oam[(self.secondary_oam_pointer * 4 + 1) as usize] = self.primary_oam[(4 * self.sprite_count + 1) as usize];
                 self.secondary_oam[(self.secondary_oam_pointer * 4 + 2) as usize] = self.primary_oam[(4 * self.sprite_count + 2) as usize];
@@ -564,6 +564,7 @@ impl Ppu {
     fn clear_sprite_overflow(&mut self) {
         self.ppustatus &= 0b11011111;
     }
+
     /// Return a dictionnary containing the current PPU Status. Usefull for debugging
     pub fn get_status(&self) -> Status {
         Status {
