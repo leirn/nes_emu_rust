@@ -162,7 +162,6 @@ impl Ppu {
         if self.col == 0:
             // End of scan line
             self.line = (self.line + 1) % 262
-            // TODO : Implement 0,0 cycle skipped on odd frame
 
         if (self.col, self.line) == (0, 0) {
             self.interrupt_bus.borrow_mut().set_frame_updated();

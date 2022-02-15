@@ -91,15 +91,15 @@ impl NesEmulator {
                 // Odd or even cycle. Needed to trigger the apu one every two cpu cycles.
                 self.parity = !self.parity;
 
-                let is_frame_updated = self.interrupt.borrow_mut().check_and_clear_frame_updated();
-                if is_frame_updated && self.cpu.borrow_mut().get_remaining_cycles() == 0 {
+                if self.is_test_mode && self.cpu.borrow_mut().get_remaining_cycles() == 0 {
                     let cpu_status = self.cpu.borrow_mut().get_status();
                     let ppu_status = self.ppu.borrow_mut().get_status();
                     self.check_test(cpu_status, ppu_status);
                 }
 
-                if is_frame_updated {
+                if self.interrupt.borrow_mut().check_and_clear_frame_updated() {
                     self.clock.tick(60);
+                    println!("FPS : {}", self.clock.get_fps());
                 }
             }
 
