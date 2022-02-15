@@ -129,7 +129,7 @@ impl Ppu {
     pub fn next(&mut self) {
         // Pixel rendering
         match self.line {
-            0..=239 | 261 => {
+            0..=239u16 | 261u16 => {
                 if self.col > 0 && self.col < 257 {
                     if self.line < 240 && self.is_bg_rendering_enabled() {
                         let pixel_color = self.compute_next_pixel();
@@ -140,7 +140,7 @@ impl Ppu {
                     self.next_sprite_evaluation();
                 }
             },
-            241 => {
+            241u16 => {
                 if self.col == 1 {
                     self.screen.present();
                     self.set_vblank();
@@ -149,7 +149,7 @@ impl Ppu {
                     }
                 }
             },
-            261 => {
+            261u16 => {
                 if self.col == 1 {
                     self.clear_vblank();
                     self.clear_sprite0_hit();
@@ -209,7 +209,7 @@ impl Ppu {
                 // read low BG Tile Byte for N+2 tile
                 let chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.bg_nt_table_register[-1];
+                let tile_address = self.bg_nt_table_register[-1] as u16;
                 let low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
                 self.set_low_bg_tile_byte(low_bg_tile_byte);
             },
@@ -217,7 +217,7 @@ impl Ppu {
                 // read high BG Tile Byte for N+2 tile
                 let chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.bg_nt_table_register[-1];
+                let tile_address = self.bg_nt_table_register[-1] as u16;
                 let high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
                 self.set_high_bg_tile_byte(high_bg_tile_byte);
             },
@@ -497,7 +497,7 @@ impl Ppu {
     }
 
     /// Copy hor part of t to v
-    fn copy_hor_t_to_hor_v(self) {
+    fn copy_hor_t_to_hor_v(&mut self) {
         self.register_v = (self.register_v & 0b111101111100000) | (self.register_t & 0b000010000011111);
     }
 
