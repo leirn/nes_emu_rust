@@ -31,7 +31,7 @@ impl NesEmulator {
         println!("SDL Context initialized");
 
 
-        let _interrupt_bus: Rc::new(RefCell::new(crate::bus::interrupt::Interrupt::new()));
+        let _interrupt_bus = Rc::new(RefCell::new(crate::bus::interrupt::Interrupt::new()));
         let _cartridge = Rc::new(RefCell::new(crate::cartridge::Cartridge::new(rom_file)));
         let _apu = Rc::new(RefCell::new(crate::apu::Apu::new()));
         let _ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(Rc::clone(&_cartridge), _sdl_context.clone(), Rc::clone(&_interrupt_bus))));
