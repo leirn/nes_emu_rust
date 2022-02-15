@@ -7,7 +7,7 @@ use std::time::Duration;
 
 pub struct Clock {
     frame_history:VecDeque<u64>,
-    start: u64,
+    start: std::time::SystemTime,
 }
 
 impl Clock {
@@ -30,6 +30,6 @@ impl Clock {
 
     /// Get current fps
     pub fn get_fps(&self) -> f64 {
-        (self.frame_history.back() as f64 - self.frame_history.front() as f64) / 10f64
+        (self.frame_history.back() - self.frame_history.front()) / 10f64
     }
 }
