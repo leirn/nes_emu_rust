@@ -157,11 +157,11 @@ impl Ppu {
             },
         }
 
-        self.col  = (self.col + 1) % 341
-        if self.col == 0:
+        self.col  = (self.col + 1) % 341;
+        if self.col == 0 {
             // End of scan line
-            self.line = (self.line + 1) % 262
-
+            self.line = (self.line + 1) % 262;
+        }
         if (self.col, self.line) == (0, 0) {
             self.interrupt_bus.borrow_mut().set_frame_updated();
             if self.is_odd_frame {
@@ -235,7 +235,7 @@ impl Ppu {
 
     /// Handle the sprite evaluation process
     pub fn next_sprite_evaluation(&mut self) {
-        if self.col > 0 and self.col < 65 {
+        if self.col > 0 && self.col < 65 {
             // During those cycles, Secondary OAM is clear on byte after another
             self.secondary_oam[(self.col - 1) as usize] = 0xff;
         }
@@ -247,12 +247,12 @@ impl Ppu {
         if self.secondary_oam_pointer > 7 {
             return; // Maximum 8 sprites found per frame
         }
-        if self.col > 64 and self.col < 256 and self.sprite_count < 64 {
+        if self.col > 64 && self.col < 256 && self.sprite_count < 64 {
             // During those cycles, sprites are actually evaluated
             // Fetch next sprite first byte (y coordinate)
             let sprite_y_coordinate = self.primary_oam[(4 * self.sprite_count) as usize];
             self.secondary_oam[(self.secondary_oam_pointer * 4) as usize] = sprite_y_coordinate;
-            if self.line in range(sprite_y_coordinate, sprite_y_coordinate + 8) {
+            if self.line in sprite_y_coordinate..=(sprite_y_coordinate + 7)) {
                 // Le sprite traverse la scanline, on le copy dans  le secondary oam
                 self.secondary_oam[(self.secondary_oam_pointer * 4 + 1) as usize] = self.primary_oam[(4 * self.sprite_count + 1) as usize];
                 self.secondary_oam[(self.secondary_oam_pointer * 4 + 2) as usize] = self.primary_oam[(4 * self.sprite_count + 2) as usize];
@@ -267,7 +267,7 @@ impl Ppu {
             self.clear_sprite_registers();
         }
 
-        if self.sprite_fetcher_count < self.secondary_oam_pointer and self.col > 256 and self.col < 321:
+        if self.sprite_fetcher_count < self.secondary_oam_pointer && self.col > 256 && self.col < 321 {
             // During those cycles sprites are actually fetched for rendering in the next line
             match self.col % 8 {
                 7 => {
@@ -310,6 +310,7 @@ impl Ppu {
                     self.sprite_fetcher_count += 1;
                 }
             }
+        }
     }
 
     /// lecture des addresses PPU Memory map
@@ -444,7 +445,7 @@ impl Ppu {
     }
 
     fn read_or_write_0x2007(&mut self) {
-        if not self.is_rendering_enabled() {
+        if !self.is_rendering_enabled() {
             self.register_v += self.get_ram_step_forward();
         }
         else {
@@ -455,7 +456,7 @@ impl Ppu {
 
     /// Write OAM with memory from main vram passed in value
     fn write_oamdma(&mut self, value: Vec<u8>) {
-        self.primary_oam[self.oamaddr:] = value
+        self.primary_oam[self.oamaddr:] = value;
     }
 
     /// Increment Horizontal part of v register
@@ -576,8 +577,8 @@ impl Ppu {
 impl Ppu {
     // Return a color_index which is a palette index
     pub fn compute_next_pixel(&mut self) -> u8 {
-        let bg_color_code, bg_color_palette = self.compute_bg_pixel();
-        let sprite_color_code, sprite_color_palette, priority = self.compute_sprite_pixel();
+        let (bg_color_code, bg_color_palette) = self.compute_bg_pixel();
+        let (sprite_color_code, sprite_color_palette, priority) = self.compute_sprite_pixel();
 
         self.multiplexer_decision(bg_color_code, bg_color_palette, sprite_color_code, sprite_color_palette, priority)
     }
@@ -602,7 +603,7 @@ impl Ppu {
         let shift_y = ((self.register_t & 0x3e0) >> 5) + self.line + ((self.register_t & 0x7000) >> 12);
 
         // Compute which zone to select in the attribute byte
-        let shift = ((1 if shift_x % 32 > 15 else 0) + (2 if shift_y % 32 > 15 else 0)) * 2;
+        let shift = ((if shift_x % 32 > 15 {1} else {0}) + (if shift_y % 32 > 15 {2} else {0})) * 2;
         let bg_color_palette = (attribute >> shift) & 0b11;
         (bg_color_code, bg_color_palette)
     }
@@ -630,8 +631,8 @@ impl Ppu {
 
     /// Implement PPU Priority Multiplexer decision table
     fn multiplexer_decision(&mut self, bg_color_code: u8, bg_color_palette: u8, sprite_color_code: u8, sprite_color_palette: u8, priority: u8) -> u8 {
-        let bg_palette_address = bg_color_palette << 2
-        let sprite_palette_address = sprite_color_palette << 2
+        let bg_palette_address = bg_color_palette << 2;
+        let sprite_palette_address = sprite_color_palette << 2;
 
         if bg_color_code == 0 && sprite_color_code == 0 {
             return self.palette_vram[0]; // Palette BG Color

@@ -3,7 +3,6 @@
 
 use std::collections::VecDeque;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::time::Duration;
 
 pub struct Clock {
     frame_history:VecDeque<u128>,
@@ -30,7 +29,7 @@ impl Clock {
 
     /// Get current fps
     pub fn get_fps(&self) -> f64 {
-        let seconds_per_10_frames:f64 = (*self.frame_history.back().unwrap() - *self.frame_history.front().unwrap()) as f64 / 1_000_000_000f64
+        let seconds_per_10_frames:f64 = (*self.frame_history.back().unwrap() - *self.frame_history.front().unwrap()) as f64 / 1_000_000_000f64;
         10f64 / (seconds_per_10_frames)
     }
 }

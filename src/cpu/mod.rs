@@ -47,9 +47,9 @@ pub struct Cpu {
 }
 
 impl Cpu {
-    pub fn new(memory: Rc<RefCell<Memory>>) -> Cpu {
+    pub fn new(_memory: Rc<RefCell<Memory>>) -> Cpu {
         Cpu {
-            memory: memory,
+            memory: _memory,
             accumulator: 0,
             x_register: 0,
             y_register: 0,
