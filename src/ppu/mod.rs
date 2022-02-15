@@ -293,18 +293,18 @@ impl Ppu {
                     }
 
                     let chr_bank = ((self.ppuctrl >> 3) & 1) * 0x1000 as u16;
-                    let low_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y + flipping_offset);
+                    let low_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16u16 * tile_address + fine_y + flipping_offset);
 
                     self.sprite_attribute_table_register.push_back(attribute);
                     self.sprite_x_coordinate_table_register.push_back(x_coordinate);
                     self.sprite_low_byte_table_register.push_back(low_sprite_tile_byte);
 
-                    let mut flipping_offset = 8;
+                    let mut flipping_offset: u16 = 8;
                     if flip_vertically {
                         flipping_offset = 0;
                     }
 
-                    let high_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y + flipping_offset);
+                    let high_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16u16 * tile_address + fine_y + flipping_offset);
                     self.sprite_high_byte_table_register.push_back(high_sprite_tile_byte);
 
                     self.sprite_fetcher_count += 1;
