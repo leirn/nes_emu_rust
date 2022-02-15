@@ -40,7 +40,7 @@ pub struct Ppu {
     ppustatus: u8,
     oamaddr: u8,
     ppuscroll: u16,
-    ppuaddr: u8,
+    ppuaddr: u16,
     ppudata: u8,
     vram: [u8; 0x400],
     palette_vram: [u8; 0x20],
@@ -131,10 +131,10 @@ impl Ppu {
                         let pixel_color = self.compute_next_pixel();
                         self.screen.update_pixel(pixel_color, self.col - 1, self.line);
                     }
+                    // Nothing happens during Vblank
+                    self.next_background_evaluation();
+                    self.next_sprite_evaluation();
                 }
-                // Nothing happens during Vblank
-                self.next_background_evaluation();
-                self.next_sprite_evaluation();
             },
             241 => {
                 if self.col == 1 {
@@ -188,32 +188,32 @@ impl Ppu {
                 // read NT Byte for N+2 tile
                 let tile_address = 0x2000 | (self.register_v & 0xfff); // Is it NT or tile address ?
                 let nt_byte = self.read_ppu_memory(tile_address);
-                self.pixel_generator.set_nt_byte(nt_byte);
+                self.set_nt_byte(nt_byte);
             },
             3 => {
                 // read AT Byte for N+2 tile
                 let attribute_address = 0x23c0 | (self.register_v & 0xC00) | ((self.register_v >> 4) & 0x38) | ((self.register_v >> 2) & 0x07);
                 let at_byte = self.read_ppu_memory(attribute_address);
-                self.pixel_generator.set_at_byte(at_byte);
+                self.set_at_byte(at_byte);
             },
             5 => {
                 // read low BG Tile Byte for N+2 tile
                 let chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.pixel_generator.bg_nt_table_register[-1];
+                let tile_address = self.bg_nt_table_register[-1];
                 let low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
-                self.pixel_generator.set_low_bg_tile_byte(low_bg_tile_byte);
+                self.set_low_bg_tile_byte(low_bg_tile_byte);
             },
             7 => {
                 // read high BG Tile Byte for N+2 tile
                 let chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.pixel_generator.bg_nt_table_register[-1];
+                let tile_address = self.bg_nt_table_register[-1];
                 let high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
-                self.pixel_generator.set_high_bg_tile_byte(high_bg_tile_byte);
+                self.set_high_bg_tile_byte(high_bg_tile_byte);
             },
             0 => {
-                self.pixel_generator.shift_registers();
+                self.shift_registers();
                 if self.col == 256 {
                     self.inc_vert_v();
                 }
@@ -229,7 +229,7 @@ impl Ppu {
     pub fn next_sprite_evaluation(&mut self) {
         if self.col > 0 and self.col < 65 {
             // During those cycles, Secondary OAM is clear on byte after another
-            self.secondary_oam[self.col - 1] = 0xff;
+            self.secondary_oam[(self.col - 1) as usize] = 0xff;
         }
         if self.col == 64 {
             self.sprite_count = 0;
@@ -242,13 +242,13 @@ impl Ppu {
         if self.col > 64 and self.col < 256 and self.sprite_count < 64 {
             // During those cycles, sprites are actually evaluated
             // Fetch next sprite first byte (y coordinate)
-            let sprite_y_coordinate = self.primary_oam[4 * self.sprite_count];
-            self.secondary_oam[self.secondary_oam_pointer * 4] = sprite_y_coordinate;
+            let sprite_y_coordinate = self.primary_oam[(4 * self.sprite_count) as usize];
+            self.secondary_oam[(self.secondary_oam_pointer * 4) as usize] = sprite_y_coordinate;
             if self.line in range(sprite_y_coordinate, sprite_y_coordinate + 8) {
                 // Le sprite traverse la scanline, on le copy dans  le secondary oam
-                self.secondary_oam[self.secondary_oam_pointer * 4 + 1] = self.primary_oam[4 * self.sprite_count + 1];
-                self.secondary_oam[self.secondary_oam_pointer * 4 + 2] = self.primary_oam[4 * self.sprite_count + 2];
-                self.secondary_oam[self.secondary_oam_pointer * 4 + 3] = self.primary_oam[4 * self.sprite_count + 3];
+                self.secondary_oam[(self.secondary_oam_pointer * 4 + 1) as usize] = self.primary_oam[(4 * self.sprite_count + 1) as usize];
+                self.secondary_oam[(self.secondary_oam_pointer * 4 + 2) as usize] = self.primary_oam[(4 * self.sprite_count + 2) as usize];
+                self.secondary_oam[(self.secondary_oam_pointer * 4 + 3) as usize] = self.primary_oam[(4 * self.sprite_count + 3) as usize];
                 self.secondary_oam_pointer += 1;
             }
             self.sprite_count += 1;
@@ -265,10 +265,10 @@ impl Ppu {
                 7 => {
 
                     // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
-                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 0];
-                    let tile_address    = self.secondary_oam[self.sprite_fetcher_count * 4 + 1];
-                    let attribute       = self.secondary_oam[self.sprite_fetcher_count * 4 + 2];
-                    let x_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 3];
+                    let y_coordinate    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 0) as usize];
+                    let tile_address    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 1) as usize];
+                    let attribute       = self.secondary_oam[(self.sprite_fetcher_count * 4 + 2) as usize];
+                    let x_coordinate    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 3) as usize];
 
                     let mut fine_y      = self.line - y_coordinate;
 
@@ -436,7 +436,7 @@ impl Ppu {
     }
 
     fn read_or_write_0x2007(&mut self) {
-        if not self.is_rendering_enabled {
+        if not self.is_rendering_enabled() {
             self.register_v += self.get_ram_step_forward();
         }
         else {
@@ -472,7 +472,7 @@ impl Ppu {
         }
         else {
             self.register_v &= 0xfff;                                       // Fine Y = 0
-            let mut coarse_ycoarse_y = (self.register_v & 0x3e0 ) >> 5;     // coarse_y = vert_v
+            let mut coarse_y = (self.register_v & 0x3e0 ) >> 5;     // coarse_y = vert_v
             if coarse_y == 29 {
                 coarse_y = 0;
                 self.register_v ^= 0x800;                                   // switch vertical nametable
@@ -499,17 +499,17 @@ impl Ppu {
 
     fn is_rendering_enabled(&self) -> bool {
         /// Return 1 is rendering is enabled, 0 otherwise///
-        self.is_bg_rendering_enabled() and self.is_sprite_rendering_enabled()
+        self.is_bg_rendering_enabled() && self.is_sprite_rendering_enabled()
     }
 
     /// Return 1 is rendering is enabled, 0 otherwise
     fn is_bg_rendering_enabled(&self) -> bool {
-        (self.ppumask >> 3) & 1
+        (self.ppumask >> 3) & 1 != 0
     }
 
     /// Return 1 is rendering is enabled, 0 otherwise
     fn is_sprite_rendering_enabled(&self) -> bool {
-        (self.ppumask >> 4) & 1
+        (self.ppumask >> 4) & 1 != 0
     }
 
     /// RAM step foward on bus access depending on PPUCTRL bu 1
@@ -571,7 +571,7 @@ impl Ppu {
 
     /// Compute the elements for the bg pixel
     fn compute_bg_pixel(&mut self) -> (u8, u8) {
-        let mut fine_x = (self.col - 1) % 8 + self.register_x; // Pixel 0 is outputed at col == 1
+        let mut fine_x = (self.col - 1) % 8 + self.register_x as u16; // Pixel 0 is outputed at col == 1
         let mut register_level = 0;
         if fine_x > 7 {
             register_level += 1;
@@ -601,11 +601,11 @@ impl Ppu {
             // TODO : self.col must only wrok where no scrolling, use register_v instead ?
             if self.col >= sprite_x && self.col < sprite_x + 8 {
                 let x_offset = self.col % 8;
-                let bit1 = (self.sprite_low_byte_table_register[i] >> (7-x_offset)) & 1;
-                let bit2 = (self.sprite_high_byte_table_register[i] >> (7-x_offset)) & 1;
+                let bit1 = (self.sprite_low_byte_table_register[i as usize] >> (7-x_offset)) & 1;
+                let bit2 = (self.sprite_high_byte_table_register[i as usize] >> (7-x_offset)) & 1;
                 let sprite_color_code = bit1 | (bit2 << 1);
 
-                let attribute = self.sprite_attribute_table_register[i];
+                let attribute = self.sprite_attribute_table_register[i as usize];
                 let priority = (attribute >> 5) & 0x1;
                 let sprite_color_palette = attribute & 0b11;
 
@@ -624,23 +624,23 @@ impl Ppu {
             return self.palette_vram[0]; // Palette BG Color
         }
         if bg_color_code == 0 && sprite_color_code > 0 {
-            return self.palette_vram[0x10 + sprite_palette_address + sprite_color_code]; // Sprite color > 0
+            return self.palette_vram[(0x10 + sprite_palette_address + sprite_color_code) as usize]; // Sprite color > 0
         }
         if sprite_color_code == 0 {
-            return self.palette_vram[bg_palette_address + bg_color_code]; // bg color
+            return self.palette_vram[(bg_palette_address + bg_color_code) as usize]; // bg color
         }
         if priority == 0 {
-            return self.palette_vram[0x10 + sprite_palette_address + sprite_color_code];
+            return self.palette_vram[(0x10 + sprite_palette_address + sprite_color_code) as usize];
         }
-        self.palette_vram[bg_palette_address + bg_color_code] // bg color
+        self.palette_vram[(bg_palette_address + bg_color_code) as usize] // bg color
     }
 
     /// Shift registers every 8 cycles
     pub fn shift_registers(&mut self) {
-        self.bg_low_byte_table_register.pop_front(0);
-        self.bg_high_byte_table_register.pop_front(0);
-        self.bg_attribute_table_register.pop_front(0);
-        self.bg_nt_table_register.pop_front(0);
+        self.bg_low_byte_table_register.pop_front();
+        self.bg_high_byte_table_register.pop_front();
+        self.bg_attribute_table_register.pop_front();
+        self.bg_nt_table_register.pop_front();
     }
 
     /// Reset the sprite registers
@@ -658,7 +658,7 @@ impl Ppu {
 
     /// Set at_byte into registers
     pub fn set_at_byte(&mut self, at_byte: u8) {
-        self.bg_at_table_register.push_back(at_byte);
+        self.bg_attribute_table_register.push_back(at_byte);
     }
 
     /// Set low_bg_tile_byte into registers
