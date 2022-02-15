@@ -4,6 +4,8 @@ mod screen;
 use crate::cartridge::Cartridge;
 use std::cell::RefCell;
 use std::rc::Rc;
+use sdl2::pixels::Color;
+use std::collections::VecDeque;
 
 pub struct Status{
     pub col: u16,
@@ -13,7 +15,6 @@ pub struct Status{
 pub struct Ppu {
     screen: screen::Screen,
     cartridge: Rc<RefCell<Cartridge>>,
-    pixel_generator: PixelGenerator,
 
     // internal registers
     register_v: u16,    // Current VRAM address, 15 bits
@@ -43,6 +44,19 @@ pub struct Ppu {
     ppudata: u8,
     vram: [u8; 0x400],
     palette_vram: [u8; 0x20],
+
+    // Pixel generator part
+    // Start with two empty tiles
+    bg_palette_register: VecDeque<u8>,
+    bg_low_byte_table_register: VecDeque<u8>,
+    bg_high_byte_table_register: VecDeque<u8>,
+    bg_attribute_table_register: VecDeque<u8>,
+    bg_nt_table_register: VecDeque<u8>,
+
+    sprite_low_byte_table_register: VecDeque<u8>,
+    sprite_high_byte_table_register: VecDeque<u8>,
+    sprite_attribute_table_register: VecDeque<u8>,
+    sprite_x_coordinate_table_register: VecDeque<u8>,
 }
 
 impl Ppu {
@@ -51,7 +65,6 @@ impl Ppu {
         Ppu {
             screen : screen::Screen::new(sdl_context),
             cartridge: cartridge,
-            pixel_generator: PixelGenerator::new(),
             // internal registers
             register_v: 0,      // Current VRAM address, 15 bits
             register_t: 0,      // Temporary VRAM address, 15 bits. Can be thought of as address of top left onscreen tile
@@ -80,6 +93,18 @@ impl Ppu {
             ppudata: 0,
             vram: [0; 0x400],
             palette_vram: [0; 0x20],
+
+            // Pixel generator variables
+            bg_palette_register: VecDeque::from([0, 0]),
+            bg_low_byte_table_register: VecDeque::from([0, 0]),
+            bg_high_byte_table_register: VecDeque::from([0, 0]),
+            bg_attribute_table_register: VecDeque::from([0, 0]),
+            bg_nt_table_register: VecDeque::from([0, 0]),
+
+            sprite_low_byte_table_register: VecDeque::new(),
+            sprite_high_byte_table_register: VecDeque::new(),
+            sprite_attribute_table_register: VecDeque::new(),
+            sprite_x_coordinate_table_register: VecDeque::new(),
         }
     }
 
@@ -103,8 +128,8 @@ impl Ppu {
             0..=239 | 261 => {
                 if self.col > 0 and self.col < 257 {
                     if self.line < 240 and self.is_bg_rendering_enabled() {
-                        pixel_color = self.pixel_generator.compute_next_pixel();
-                        instances.nes.display.fill(pixel_color, (((self.col - 1) * self.scale, self.line * self.scale), (self.scale,self.scale)));
+                        let pixel_color = self.compute_next_pixel();
+                        self.screen.update_pixel(pixel_color, self.col - 1, self.line);
                     }
                 }
                 // Nothing happens during Vblank
@@ -460,90 +485,115 @@ impl Ppu {
     }
 }
 
-struct PixelGenerator {
-    // Start with two empty tiles
-    bg_palette_register: Vec<u8>,
-    bg_low_byte_table_register: Vec<u8>,
-    bg_high_byte_table_register: Vec<u8>,
-    bg_attribute_table_register: Vec<u8>,
-    bg_nt_table_register: Vec<u8>,
 
-    sprite_low_byte_table_register: Vec<u8>,
-    sprite_high_byte_table_register: Vec<u8>,
-    sprite_attribute_table_register: Vec<u8>,
-    sprite_x_coordinate_table_register: Vec<u8>,
-}
+impl Ppu {
+    // Return a color_index which is a palette index
+    pub fn compute_next_pixel(&mut self) -> u8 {
+        let bg_color_code, bg_color_palette = self.compute_bg_pixel();
+        let sprite_color_code, sprite_color_palette, priority = self.compute_sprite_pixel();
 
-impl PixelGenerator {
-    pub fn new() -> PixelGenerator {
-        bg_palette_register: vec![],
-        bg_low_byte_table_register: vec![],
-        bg_high_byte_table_register: vec![],
-        bg_attribute_table_register: vec![],
-        bg_nt_table_register: vec![],
-
-        sprite_low_byte_table_register: vec![],
-        sprite_high_byte_table_register: vec![],
-        sprite_attribute_table_register: vec![],
-        sprite_x_coordinate_table_register: vec![],
-    }
-
-    pub fn compute_next_pixel(&mut self) -> Rgb {
-        Rgb {
-            r: 0,
-            g: 0,
-            b: 0,
-        }
+        self.multiplexer_decision(bg_color_code, bg_color_palette, sprite_color_code, sprite_color_palette, priority)
     }
 
     /// Compute the elements for the bg pixel
     fn compute_bg_pixel(&mut self) -> (u8, u8) {
-        (0, 0)
+        let mut fine_x = (self.col - 1) % 8 + self.register_x; // Pixel 0 is outputed at col == 1
+        let mut register_level = 0;
+        if fine_x > 7 {
+            register_level += 1;
+            fine_x -= 8;
+        }
+
+        let bit1 = (self.bg_low_byte_table_register[register_level] >> (7-fine_x)) & 1;
+        let bit2 = (self.bg_high_byte_table_register[register_level] >> (7-fine_x)) & 1;
+        let bg_color_code = bit1 | (bit2 << 1);
+
+        let attribute = self.bg_attribute_table_register[register_level];
+
+        // la position réelle x et y dépendent du coin en haut à gauche défini par register_t + fine x ou y  + la position réelle sur l'écran
+        let shift_x = (self.register_t & 0x1f) + (self.col - 1) + self.register_x;
+        let shift_y = ((self.register_t & 0x3e0) >> 5) + self.line + ((self.register_t & 0x7000) >> 12);
+
+        // Compute which zone to select in the attribute byte
+        let shift = ((1 if shift_x % 32 > 15 else 0) + (2 if shift_y % 32 > 15 else 0)) * 2;
+        let bg_color_palette = (attribute >> shift) & 0b11;
+        (bg_color_code, bg_color_palette)
     }
 
     /// Compute the elements for the sprite pixel if there is one at that position
     fn compute_sprite_pixel(&mut self) -> (u8, u8, u8) {
+        for i in 0..(self.sprite_x_coordinate_table_register.len())) {
+            let sprite_x = self.sprite_x_coordinate_table_register[i];
+            // TODO : self.col must only wrok where no scrolling, use register_v instead ?
+            if self.col >= sprite_x && self.col < sprite_x + 8 {
+                let x_offset = self.col % 8;
+                let bit1 = (self.sprite_low_byte_table_register[i] >> (7-x_offset)) & 1;
+                let bit2 = (self.sprite_high_byte_table_register[i] >> (7-x_offset)) & 1;
+                let sprite_color_code = bit1 | (bit2 << 1);
 
+                let attribute = self.sprite_attribute_table_register[i];
+                let priority = (attribute >> 5) & 0x1;
+                let sprite_color_palette = attribute & 0b11;
+
+                return (sprite_color_code, sprite_color_palette, priority);
+            }
+        }
+        (0, 0, 1) // Means no sprite, transparente color
     }
 
     /// Implement PPU Priority Multiplexer decision table
-    fn multiplexer_decision(&mut self) -> Rgb {
+    fn multiplexer_decision(&mut self, bg_color_code: u8, bg_color_palette: u8, sprite_color_code: u8, sprite_color_palette: u8, priority: u8) -> u8 {
+        let bg_palette_address = bg_color_palette << 2
+        let sprite_palette_address = sprite_color_palette << 2
 
+        if bg_color_code == 0 && sprite_color_code == 0 {
+            return self.palette_vram[0]; // Palette BG Color
+        }
+        if bg_color_code == 0 && sprite_color_code > 0 {
+            return self.palette_vram[0x10 + sprite_palette_address + sprite_color_code]; // Sprite color > 0
+        }
+        if sprite_color_code == 0 {
+            return self.palette_vram[bg_palette_address + bg_color_code]; // bg color
+        }
+        if priority == 0 {
+            return self.palette_vram[0x10 + sprite_palette_address + sprite_color_code];
+        }
+        self.palette_vram[bg_palette_address + bg_color_code] // bg color
     }
 
     /// Shift registers every 8 cycles
     pub fn shift_registers(&mut self) {
-
+        self.bg_low_byte_table_register.pop_front(0);
+        self.bg_high_byte_table_register.pop_front(0);
+        self.bg_attribute_table_register.pop_front(0);
+        self.bg_nt_table_register.pop_front(0);
     }
 
     /// Reset the sprite registers
     pub fn clear_sprite_registers(&mut self) {
-
+        self.sprite_low_byte_table_register.clear();
+        self.sprite_high_byte_table_register.clear();
+        self.sprite_attribute_table_register.clear();
+        self.sprite_x_coordinate_table_register.clear();
     }
 
     /// Set nt_byte into registers
     pub fn set_nt_byte(&mut self, nt_byte: u8) {
-
+        self.bg_nt_table_register.push_back(nt_byte);
     }
 
     /// Set at_byte into registers
     pub fn set_at_byte(&mut self, at_byte: u8) {
-
+        self.bg_at_table_register.push_back(at_byte);
     }
 
     /// Set low_bg_tile_byte into registers
     pub fn set_low_bg_tile_byte(&mut self, low_bg_tile_byte: u8) {
-
+        self.bg_low_byte_table_register.push_back(low_bg_tile_byte);
     }
 
     /// Set high_bg_tile_byte into registers
-    pub fn set_high_bg_tile_byte(&mut self, high_bg_tile_byte: u8) {
-
+    pub fn set_high_bg_tile_byte(&mut self, high_bg_tile_byte: u8)
+        self.bg_high_byte_table_register.push_back(high_bg_tile_byte);
     }
-}
-
-struct Rgb {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
 }
