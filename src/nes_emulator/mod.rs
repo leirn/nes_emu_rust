@@ -31,12 +31,12 @@ impl NesEmulator {
         println!("SDL Context initialized");
 
 
-        let interrupt_bus: Rc::new(RefCell::new(crate::bus::interrupt::Interrupt::new()));
-        let cartridge = Rc::new(RefCell::new(crate::cartridge::Cartridge::new(rom_file)));
-        let apu = Rc::new(RefCell::new(crate::apu::Apu::new()));
-        let ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(Rc::clone(&cartridge), _sdl_context.clone(), Rc::clone(&interrupt_bus))));
-        let memory = Rc::new(RefCell::new(crate::bus::memory::Memory::new(Rc::clone(&cartridge), Rc::clone(&ppu), Rc::clone(&apu))));
-        let cpu = Rc::new(RefCell::new(crate::cpu::Cpu::new(Rc::clone(&memory))));
+        let _interrupt_bus: Rc::new(RefCell::new(crate::bus::interrupt::Interrupt::new()));
+        let _cartridge = Rc::new(RefCell::new(crate::cartridge::Cartridge::new(rom_file)));
+        let _apu = Rc::new(RefCell::new(crate::apu::Apu::new()));
+        let _ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(Rc::clone(&_cartridge), _sdl_context.clone(), Rc::clone(&_interrupt_bus))));
+        let _memory = Rc::new(RefCell::new(crate::bus::memory::Memory::new(Rc::clone(&_cartridge), Rc::clone(&_ppu), Rc::clone(&_apu))));
+        let _cpu = Rc::new(RefCell::new(crate::cpu::Cpu::new(Rc::clone(&_memory))));
 
 
         NesEmulator{
@@ -44,12 +44,12 @@ impl NesEmulator {
             is_test_mode: false,
             sdl_context: _sdl_context,
             clock: clock::Clock::new(),
-            cartridge: cartridge,
-            memory: memory,
-            apu: apu,
-            ppu: ppu,
-            cpu: cpu,
-            interrupt_bus: interrupt_bus,
+            cartridge: _cartridge,
+            memory: _memory,
+            apu: _apu,
+            ppu: _ppu,
+            cpu: _cpu,
+            interrupt_bus: _interrupt_bus,
             lines: vec![],
             line_index: 0,
             parity: false,

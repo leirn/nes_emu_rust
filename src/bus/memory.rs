@@ -14,12 +14,12 @@ pub struct Memory {
 
 impl Memory {
     /// Instantiate new Memory component
-    pub fn new(cartridge: Rc<RefCell<Cartridge>>, ppu: Rc<RefCell<Ppu>>, apu: Rc<RefCell<Apu>>) -> Memory {
+    pub fn new(_cartridge: Rc<RefCell<Cartridge>>, _ppu: Rc<RefCell<Ppu>>, _apu: Rc<RefCell<Apu>>) -> Memory {
         Memory {
             internal_ram: [0; 0x800], // 2kB or internal RAM
-            apu: apu,
-            ppu: ppu,
-            cartridge: cartridge,
+            apu: _apu,
+            ppu: _ppu,
+            cartridge: _cartridge,
         }
     }
 

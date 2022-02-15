@@ -5,7 +5,6 @@ use crate::cartridge::Cartridge;
 use crate::bus::interrupt::Interrupt;
 use std::cell::RefCell;
 use std::rc::Rc;
-use sdl2::pixels::Color;
 use std::collections::VecDeque;
 
 pub struct Status{
@@ -63,11 +62,11 @@ pub struct Ppu {
 
 impl Ppu {
     /// Instantiate the PPU
-    pub fn new(cartridge: Rc<RefCell<Cartridge>>, sdl_context: Rc<RefCell<sdl2::Sdl>>, interrupt_bus: Rc<RefCell<Interrupt>>) -> Ppu {
+    pub fn new(_cartridge: Rc<RefCell<Cartridge>>, _sdl_context: Rc<RefCell<sdl2::Sdl>>, _interrupt_bus: Rc<RefCell<Interrupt>>) -> Ppu {
         Ppu {
-            screen : screen::Screen::new(sdl_context),
-            cartridge: cartridge,
-            interrupt_bus: interrupt_bus,
+            screen : screen::Screen::new(_sdl_context),
+            cartridge: _cartridge,
+            interrupt_bus: _interrupt_bus,
 
             // internal registers
             register_v: 0,      // Current VRAM address, 15 bits
@@ -209,7 +208,7 @@ impl Ppu {
                 // read low BG Tile Byte for N+2 tile
                 let chr_bank = (((self.ppuctrl >> 4) & 1) * 0x1000) as u16;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.bg_nt_table_register.back() as u16;
+                let tile_address = self.bg_nt_table_register.back().unwrap() as u16;
                 let low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
                 self.set_low_bg_tile_byte(low_bg_tile_byte);
             },
@@ -217,7 +216,7 @@ impl Ppu {
                 // read high BG Tile Byte for N+2 tile
                 let chr_bank = (((self.ppuctrl >> 4) & 1) * 0x1000) as u16;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.bg_nt_table_register.back() as u16;
+                let tile_address = self.bg_nt_table_register.back().unwrap() as u16;
                 let high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
                 self.set_high_bg_tile_byte(high_bg_tile_byte);
             },
@@ -506,8 +505,8 @@ impl Ppu {
         self.register_v = (self.register_v & 0b000010000011111) | (self.register_t & 0b111101111100000);
     }
 
+    /// Return 1 is rendering is enabled, 0 otherwise
     fn is_rendering_enabled(&self) -> bool {
-        /// Return 1 is rendering is enabled, 0 otherwise///
         self.is_bg_rendering_enabled() && self.is_sprite_rendering_enabled()
     }
 

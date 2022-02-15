@@ -1049,16 +1049,14 @@ impl Cpu {
             self.carry = true;
             self.negative = false;
             self.zero = true;
-        } else {
-            if op2 - op1 >= 0x80 {
+        } else if op2 - op1 >= 0x80 {
                 self.carry = false;
                 self.negative = false;
                 self.zero = false;
-            } else {
-                self.carry = false;
-                self.negative = true;
-                self.zero = false;
-            }
+        } else {
+            self.carry = false;
+            self.negative = true;
+            self.zero = false;
         }
     }
 
