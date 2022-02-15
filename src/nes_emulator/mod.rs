@@ -54,7 +54,7 @@ impl NesEmulator {
             cpu: cpu,
             lines: vec![],
             line_index: 0,
-            parity = false,
+            parity: false,
         }
     }
 
@@ -94,6 +94,7 @@ impl NesEmulator {
                     let ppu_status = self.ppu.borrow_mut().get_status();
                     self.check_test(cpu_status, ppu_status);
                 }
+
                 if self.is_frame_updated {
                     self.clock.tick(60);
                     self.is_frame_updated = false;
@@ -208,7 +209,6 @@ struct LogFileLine {
     pub total_cycles: u32,
     pub col: u16,
     pub line: u16,
-
 }
 
 impl LogFileLine {

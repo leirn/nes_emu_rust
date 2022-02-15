@@ -596,7 +596,7 @@ impl Ppu {
 
     /// Compute the elements for the sprite pixel if there is one at that position
     fn compute_sprite_pixel(&mut self) -> (u8, u8, u8) {
-        for i in 0..(self.sprite_x_coordinate_table_register.len())) {
+        for i in 0..(self.sprite_x_coordinate_table_register.len()) {
             let sprite_x = self.sprite_x_coordinate_table_register[i];
             // TODO : self.col must only wrok where no scrolling, use register_v instead ?
             if self.col >= sprite_x && self.col < sprite_x + 8 {
@@ -667,7 +667,7 @@ impl Ppu {
     }
 
     /// Set high_bg_tile_byte into registers
-    pub fn set_high_bg_tile_byte(&mut self, high_bg_tile_byte: u8)
+    pub fn set_high_bg_tile_byte(&mut self, high_bg_tile_byte: u8) {
         self.bg_high_byte_table_register.push_back(high_bg_tile_byte);
     }
 }

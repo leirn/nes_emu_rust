@@ -6,6 +6,7 @@ impl Controller {
     /// Set when A button is press
     fn set_a(&mut self) {
     &mut self.status |= 1;
+    }
 
     /// Clear when A button is released
     fn clear_a(&mut self) {
