@@ -43,7 +43,7 @@ pub struct Ppu {
     ppuscroll: u16,
     ppuaddr: u16,
     ppudata: u8,
-    vram: [u8; 0x800],
+    vram: [u8; 0x2000],
     palette_vram: [u8; 0x20],
 
     // Pixel generator part
@@ -94,7 +94,7 @@ impl Ppu {
             ppuscroll: 0,
             ppuaddr: 0,
             ppudata: 0,
-            vram: [0; 0x800],
+            vram: [0; 0x2000],
             palette_vram: [0; 0x20],
 
             // Pixel generator variables

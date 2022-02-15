@@ -105,6 +105,9 @@ impl NesEmulator {
                     Event::KeyDown {
                         keycode: Some(sdl2::keyboard::Keycode::Q), ..
                     } => { continuer = false},
+                    Event::KeyDown {
+                        keycode: Some(sdl2::keyboard::Keycode::P), ..
+                    } => { self.toggle_pause()},
                     _ => ()
                 }
             }
