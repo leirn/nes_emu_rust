@@ -138,7 +138,7 @@ impl Ppu {
             },
             241 => {
                 if self.col == 1 {
-                    pygame.display.flip();
+                    self.screen.present();
                     self.set_vblank();
                     if (self.ppuctrl >> 7) & 1 {
                         instances.nes.raise_nmi();
@@ -186,30 +186,30 @@ impl Ppu {
         match self.col % 8 {
             1 => {
                 // read NT Byte for N+2 tile
-                tile_address = 0x2000 | (self.register_v & 0xfff); // Is it NT or tile address ?
-                nt_byte = self.read_ppu_memory(tile_address);
+                let tile_address = 0x2000 | (self.register_v & 0xfff); // Is it NT or tile address ?
+                let nt_byte = self.read_ppu_memory(tile_address);
                 self.pixel_generator.set_nt_byte(nt_byte);
             },
             3 => {
                 // read AT Byte for N+2 tile
-                attribute_address = 0x23c0 | (self.register_v & 0xC00) | ((self.register_v >> 4) & 0x38) | ((self.register_v >> 2) & 0x07);
-                at_byte = self.read_ppu_memory(attribute_address);
+                let attribute_address = 0x23c0 | (self.register_v & 0xC00) | ((self.register_v >> 4) & 0x38) | ((self.register_v >> 2) & 0x07);
+                let at_byte = self.read_ppu_memory(attribute_address);
                 self.pixel_generator.set_at_byte(at_byte);
             },
             5 => {
                 // read low BG Tile Byte for N+2 tile
-                chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
-                fine_y = self.register_v >> 12;
-                tile_address = self.pixel_generator.bg_nt_table_register[-1];
-                low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
+                let chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
+                let fine_y = self.register_v >> 12;
+                let tile_address = self.pixel_generator.bg_nt_table_register[-1];
+                let low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
                 self.pixel_generator.set_low_bg_tile_byte(low_bg_tile_byte);
             },
             7 => {
                 // read high BG Tile Byte for N+2 tile
-                chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
-                fine_y = self.register_v >> 12;
-                tile_address = self.pixel_generator.bg_nt_table_register[-1];
-                high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
+                let chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
+                let fine_y = self.register_v >> 12;
+                let tile_address = self.pixel_generator.bg_nt_table_register[-1];
+                let high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
                 self.pixel_generator.set_high_bg_tile_byte(high_bg_tile_byte);
             },
             0 => {
@@ -227,7 +227,81 @@ impl Ppu {
 
     /// Handle the sprite evaluation process
     pub fn next_sprite_evaluation(&mut self) {
+        if self.col > 0 and self.col < 65 {
+            // During those cycles, Secondary OAM is clear on byte after another
+            self.secondary_oam[self.col - 1] = 0xff;
+        }
+        if self.col == 64 {
+            self.sprite_count = 0;
+            self.secondary_oam_pointer = 0;
+        }
 
+        if self.secondary_oam_pointer > 7 {
+            return; // Maximum 8 sprites found per frame
+        }
+        if self.col > 64 and self.col < 256 and self.sprite_count < 64 {
+            // During those cycles, sprites are actually evaluated
+            // Fetch next sprite first byte (y coordinate)
+            let sprite_y_coordinate = self.primary_oam[4 * self.sprite_count];
+            self.secondary_oam[self.secondary_oam_pointer * 4] = sprite_y_coordinate;
+            if self.line in range(sprite_y_coordinate, sprite_y_coordinate + 8) {
+                // Le sprite traverse la scanline, on le copy dans  le secondary oam
+                self.secondary_oam[self.secondary_oam_pointer * 4 + 1] = self.primary_oam[4 * self.sprite_count + 1];
+                self.secondary_oam[self.secondary_oam_pointer * 4 + 2] = self.primary_oam[4 * self.sprite_count + 2];
+                self.secondary_oam[self.secondary_oam_pointer * 4 + 3] = self.primary_oam[4 * self.sprite_count + 3];
+                self.secondary_oam_pointer += 1;
+            }
+            self.sprite_count += 1;
+        }
+
+        if self.col == 256 {
+            self.sprite_fetcher_count = 0;
+            self.clear_sprite_registers();
+        }
+
+        if self.sprite_fetcher_count < self.secondary_oam_pointer and self.col > 256 and self.col < 321:
+            // During those cycles sprites are actually fetched for rendering in the next line
+            match self.col % 8 {
+                7 => {
+
+                    // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
+                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 0];
+                    let tile_address    = self.secondary_oam[self.sprite_fetcher_count * 4 + 1];
+                    let attribute       = self.secondary_oam[self.sprite_fetcher_count * 4 + 2];
+                    let x_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 3];
+
+                    let mut fine_y      = self.line - y_coordinate;
+
+                    // Flipping
+                    let flip_horizontally = (attribute >> 6) & 1;
+                    let flip_vertically = (attribute >> 7) & 1;
+
+                    let mut flipping_offset = 0;
+                    if flip_vertically > 0 {
+                        flipping_offset = 8;
+                    }
+                    if flip_horizontally > 0 {
+                        fine_y = 7 - fine_y;
+                    }
+
+                    let chr_bank = ((self.ppuctrl >> 3) & 1) * 0x1000;
+                    let low_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y + flipping_offset);
+
+                    self.sprite_attribute_table_register.push_back(attribute);
+                    self.sprite_x_coordinate_table_register.push_back(x_coordinate);
+                    self.sprite_low_byte_table_register.push_back(low_sprite_tile_byte);
+
+                    let mut flipping_offset = 8;
+                    if flip_vertically > 0 {
+                        flipping_offset = 0;
+                    }
+
+                    let high_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y + flipping_offset);
+                    self.sprite_high_byte_table_register.push_back(high_sprite_tile_byte);
+
+                    self.sprite_fetcher_count += 1;
+                }
+            }
     }
 
     /// lecture des addresses PPU Memory map

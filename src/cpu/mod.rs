@@ -1,5 +1,5 @@
 //! CPU component
-use crate::memory::Memory;
+use crate::bus::memory::Memory;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;

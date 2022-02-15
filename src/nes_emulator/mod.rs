@@ -17,7 +17,7 @@ pub struct NesEmulator {
     pub sdl_context: Rc<RefCell<sdl2::Sdl>>,
     clock: clock::Clock,
     cartridge: Rc<RefCell<crate::cartridge::Cartridge>>,
-    memory: Rc<RefCell<crate::memory::Memory>>,
+    memory: Rc<RefCell<crate::bus::memory::Memory>>,
     apu: Rc<RefCell<crate::apu::Apu>>,
     ppu: Rc<RefCell<crate::ppu::Ppu>>,
     cpu: Rc<RefCell<crate::cpu::Cpu>>,
@@ -35,7 +35,7 @@ impl NesEmulator {
         let cartridge = Rc::new(RefCell::new(crate::cartridge::Cartridge::new(rom_file)));
         let apu = Rc::new(RefCell::new(crate::apu::Apu::new()));
         let ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(cartridge.clone(), _sdl_context.clone())));
-        let memory = Rc::new(RefCell::new(crate::memory::Memory::new(Rc::clone(&cartridge), Rc::clone(&ppu), Rc::clone(&apu))));
+        let memory = Rc::new(RefCell::new(crate::bus::memory::Memory::new(Rc::clone(&cartridge), Rc::clone(&ppu), Rc::clone(&apu))));
         let cpu = Rc::new(RefCell::new(crate::cpu::Cpu::new(Rc::clone(&memory))));
 
         NesEmulator{
