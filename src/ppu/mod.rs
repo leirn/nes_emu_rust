@@ -273,26 +273,26 @@ impl Ppu {
                 7 => {
 
                     // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
-                    let y_coordinate    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 0) as usize];
-                    let tile_address    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 1) as usize];
+                    let y_coordinate    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 0) as usize] as u16;
+                    let tile_address    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 1) as usize] as u16;
                     let attribute       = self.secondary_oam[(self.sprite_fetcher_count * 4 + 2) as usize];
                     let x_coordinate    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 3) as usize];
 
                     let mut fine_y      = self.line - y_coordinate;
 
                     // Flipping
-                    let flip_horizontally = (attribute >> 6) & 1;
-                    let flip_vertically = (attribute >> 7) & 1;
+                    let flip_horizontally = (attribute >> 6) & 1 != 0;
+                    let flip_vertically = (attribute >> 7) & 1 != 0;
 
-                    let mut flipping_offset = 0;
-                    if flip_vertically > 0 {
+                    let mut flipping_offset: u16 = 0;
+                    if flip_vertically {
                         flipping_offset = 8;
                     }
-                    if flip_horizontally > 0 {
+                    if flip_horizontally {
                         fine_y = 7 - fine_y;
                     }
 
-                    let chr_bank = ((self.ppuctrl >> 3) & 1) * 0x1000;
+                    let chr_bank = ((self.ppuctrl >> 3) & 1) * 0x1000 as u16;
                     let low_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y + flipping_offset);
 
                     self.sprite_attribute_table_register.push_back(attribute);
@@ -300,7 +300,7 @@ impl Ppu {
                     self.sprite_low_byte_table_register.push_back(low_sprite_tile_byte);
 
                     let mut flipping_offset = 8;
-                    if flip_vertically > 0 {
+                    if flip_vertically {
                         flipping_offset = 0;
                     }
 
