@@ -23,6 +23,7 @@ pub struct NesEmulator {
     cpu: Rc<RefCell<crate::cpu::Cpu>>,
     lines: Vec<String>,
     line_index: usize,
+    parity: bool,
 }
 
 impl NesEmulator {
@@ -53,6 +54,7 @@ impl NesEmulator {
             cpu: cpu,
             lines: vec![],
             line_index: 0,
+            parity = false,
         }
     }
 
@@ -76,10 +78,16 @@ impl NesEmulator {
                     self.is_irq = false;
                     self.cpu.borrow_mut().irq();
                 }
+                if self.parity {
+                    self.apu.borrow_mut().next();
+                }
                 self.cpu.borrow_mut().next();
                 self.ppu.borrow_mut().next();
                 self.ppu.borrow_mut().next();
                 self.ppu.borrow_mut().next();
+
+                // Odd or even cycle. Needed to trigger the apu one every two cpu cycles.
+                self.parity = !self.parity;
 
                 if self.is_test_mode && self.cpu.borrow_mut().get_remaining_cycles() == 0 {
                     let cpu_status = self.cpu.borrow_mut().get_status();
@@ -214,8 +222,8 @@ impl LogFileLine {
 
         LogFileLine {
             opcode: 0,
-            program_counter: u16::from_str_radix(&line[0..4], 16).unwrap(), //line[0..4].to_string().parse::<u16>().unwrap(),
-            stack_pointer: u8::from_str_radix(&result1["SP"], 16).unwrap(), //result1["SP"].to_string().parse::<u8>().unwrap(),
+            program_counter: u16::from_str_radix(&line[0..4], 16).unwrap(),
+            stack_pointer: u8::from_str_radix(&result1["SP"], 16).unwrap(),
             accumulator: u8::from_str_radix(&result1["A"], 16).unwrap(),
             x_register: u8::from_str_radix(&result1["X"], 16).unwrap(),
             y_register: u8::from_str_radix(&result1["Y"], 16).unwrap(),
