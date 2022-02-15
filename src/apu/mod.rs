@@ -9,6 +9,11 @@ impl Apu {
         }
     }
 
+    /// Next APU cycle
+    pub fn next(&self) {
+
+    }
+
     /// Read APU registers
     pub fn read_registers(&mut self, address: u16) -> u8 {
         0
