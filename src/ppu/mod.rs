@@ -208,7 +208,7 @@ impl Ppu {
                 // read low BG Tile Byte for N+2 tile
                 let chr_bank = (((self.ppuctrl >> 4) & 1) * 0x1000) as u16;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.bg_nt_table_register.back().unwrap() as u16;
+                let tile_address = *self.bg_nt_table_register.back().unwrap() as u16;
                 let low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
                 self.set_low_bg_tile_byte(low_bg_tile_byte);
             },
@@ -216,7 +216,7 @@ impl Ppu {
                 // read high BG Tile Byte for N+2 tile
                 let chr_bank = (((self.ppuctrl >> 4) & 1) * 0x1000) as u16;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.bg_nt_table_register.back().unwrap() as u16;
+                let tile_address = *self.bg_nt_table_register.back().unwrap() as u16;
                 let high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
                 self.set_high_bg_tile_byte(high_bg_tile_byte);
             },
