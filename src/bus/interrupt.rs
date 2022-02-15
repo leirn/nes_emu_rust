@@ -8,9 +8,11 @@ pub struct Interrupt {
 impl Interrupt {
     // Create new interrupt object
     pub fn new() -> Interrupt {
-        is_nmi: false,
-        is_irq: false,
-        is_frame_updated: false,
+        Interrupt {
+            is_nmi: false,
+            is_irq: false,
+            is_frame_updated: false,
+        }
     }
 
     /// Raises an NMI interrupt
