@@ -8,7 +8,7 @@ use yaml_rust::YamlLoader;
 mod apu;
 mod cartridge;
 mod cpu;
-mod memory;
+mod bus;
 mod nes_emulator;
 mod ppu;
 

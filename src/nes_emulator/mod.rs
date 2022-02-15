@@ -192,7 +192,7 @@ impl NesEmulator {
         //assert_eq!(ppu_status.col, log_status.col);
         //assert_eq!(ppu_status.line, log_status.line);
 
-        println!("");
+        println!();
 
     }
 }
