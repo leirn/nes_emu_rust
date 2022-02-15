@@ -21,7 +21,7 @@ pub struct NesEmulator {
     apu: Rc<RefCell<crate::apu::Apu>>,
     ppu: Rc<RefCell<crate::ppu::Ppu>>,
     cpu: Rc<RefCell<crate::cpu::Cpu>>,
-    interrupt_bus: Rc<RefCell<crate::bus::Interrupt>>,
+    interrupt_bus: Rc<RefCell<crate::bus::interrupt::Interrupt>>,
     lines: Vec<String>,
     line_index: usize,
     parity: bool,
@@ -34,13 +34,13 @@ impl NesEmulator {
         println!("SDL Context initialized");
 
 
+        let interrupt_bus: Rc::new(RefCell::new(crate::bus::interrupt::Interrupt::new()));
         let cartridge = Rc::new(RefCell::new(crate::cartridge::Cartridge::new(rom_file)));
         let apu = Rc::new(RefCell::new(crate::apu::Apu::new()));
-        let ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(cartridge.clone(), _sdl_context.clone())));
+        let ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(Rc::clone(&cartridge), _sdl_context.clone(), Rc::clone(&interrupt_bus))));
         let memory = Rc::new(RefCell::new(crate::bus::memory::Memory::new(Rc::clone(&cartridge), Rc::clone(&ppu), Rc::clone(&apu))));
         let cpu = Rc::new(RefCell::new(crate::cpu::Cpu::new(Rc::clone(&memory))));
 
-        let interrupt_bus: Rc::new(RefCell::new(crate::bus::Interrupt::new()));
 
         NesEmulator{
             is_nmi: false,
@@ -97,7 +97,7 @@ impl NesEmulator {
                     self.check_test(cpu_status, ppu_status);
                 }
 
-                if self.interrupt.borrow_mut().check_and_clear_frame_updated() {
+                if self.interrupt_bus.borrow_mut().check_and_clear_frame_updated() {
                     self.clock.tick(60);
                     println!("FPS : {}", self.clock.get_fps());
                 }
