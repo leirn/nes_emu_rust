@@ -9,10 +9,7 @@ use regex::Regex;
 use std::io::BufRead;
 
 pub struct NesEmulator {
-    is_nmi: bool,
-    is_irq: bool,
     pause: bool,
-    is_frame_updated: bool,
     is_test_mode: bool,
     pub sdl_context: Rc<RefCell<sdl2::Sdl>>,
     clock: clock::Clock,
@@ -43,10 +40,7 @@ impl NesEmulator {
 
 
         NesEmulator{
-            is_nmi: false,
-            is_irq: false,
             pause: false,
-            is_frame_updated: false,
             is_test_mode: false,
             sdl_context: _sdl_context,
             clock: clock::Clock::new(),
