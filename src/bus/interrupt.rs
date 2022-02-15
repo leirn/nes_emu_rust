@@ -1,4 +1,4 @@
-struct Interrupt {
+pub struct Interrupt {
     is_nmi: bool,
     is_irq: bool,
     is_frame_updated: bool,

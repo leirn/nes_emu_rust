@@ -133,7 +133,7 @@ impl Ppu {
                 if self.col > 0 && self.col < 257 {
                     if self.line < 240 && self.is_bg_rendering_enabled() {
                         let pixel_color = self.compute_next_pixel();
-                        self.screen.update_pixel(pixel_color, self.col - 1, self.line);
+                        self.screen.update_pixel(pixel_color, (self.col - 1) as u8, self.line as u8);
                     }
                     // Nothing happens during Vblank
                     self.next_background_evaluation();
@@ -207,17 +207,17 @@ impl Ppu {
             },
             5 => {
                 // read low BG Tile Byte for N+2 tile
-                let chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
+                let chr_bank = (((self.ppuctrl >> 4) & 1) * 0x1000) as u16;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.bg_nt_table_register[-1] as u16;
+                let tile_address = self.bg_nt_table_register.back() as u16;
                 let low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
                 self.set_low_bg_tile_byte(low_bg_tile_byte);
             },
             7 => {
                 // read high BG Tile Byte for N+2 tile
-                let chr_bank = ((self.ppuctrl >> 4) & 1) * 0x1000;
+                let chr_bank = (((self.ppuctrl >> 4) & 1) * 0x1000) as u16;
                 let fine_y = self.register_v >> 12;
-                let tile_address = self.bg_nt_table_register[-1] as u16;
+                let tile_address = self.bg_nt_table_register.back() as u16;
                 let high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
                 self.set_high_bg_tile_byte(high_bg_tile_byte);
             },
@@ -522,7 +522,7 @@ impl Ppu {
     }
 
     /// RAM step foward on bus access depending on PPUCTRL bu 1
-    fn get_ram_step_forward(&self) -> u8 {
+    fn get_ram_step_forward(&self) -> u16 {
         if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20}
     }
 
@@ -599,7 +599,7 @@ impl Ppu {
         let attribute = self.bg_attribute_table_register[register_level];
 
         // la position réelle x et y dépendent du coin en haut à gauche défini par register_t + fine x ou y  + la position réelle sur l'écran
-        let shift_x = (self.register_t & 0x1f) + (self.col - 1) + self.register_x;
+        let shift_x = (self.register_t & 0x1f) + (self.col - 1) + self.register_x as u16;
         let shift_y = ((self.register_t & 0x3e0) >> 5) + self.line + ((self.register_t & 0x7000) >> 12);
 
         // Compute which zone to select in the attribute byte
@@ -611,7 +611,7 @@ impl Ppu {
     /// Compute the elements for the sprite pixel if there is one at that position
     fn compute_sprite_pixel(&mut self) -> (u8, u8, u8) {
         for i in 0..(self.sprite_x_coordinate_table_register.len()) {
-            let sprite_x = self.sprite_x_coordinate_table_register[i];
+            let sprite_x = self.sprite_x_coordinate_table_register[i] as u16;
             // TODO : self.col must only wrok where no scrolling, use register_v instead ?
             if self.col >= sprite_x && self.col < sprite_x + 8 {
                 let x_offset = self.col % 8;
