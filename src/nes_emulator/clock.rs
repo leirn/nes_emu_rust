@@ -30,6 +30,7 @@ impl Clock {
 
     /// Get current fps
     pub fn get_fps(&self) -> f64 {
-        1000000000f64 * 10f64 / (*self.frame_history.back().unwrap() - *self.frame_history.front().unwrap())
+        let seconds_per_10_frames:f64 = (*self.frame_history.back().unwrap() - *self.frame_history.front().unwrap()) as f64 / 1_000_000_000f64
+        10f64 / (seconds_per_10_frames)
     }
 }
