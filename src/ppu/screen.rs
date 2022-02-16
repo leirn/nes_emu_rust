@@ -54,7 +54,6 @@ impl Screen {
         // A draw a rectangle which almost fills our window with it !
         if let Err(e) = self.canvas.fill_rect(sdl2::rect::Rect::new(10, 10, 256 * 3 - 20, 240 * 3 - 20)) {
             println!("{:?}", e);
-            _ => ()
         }
 
         // However the canvas has not been updated to the window yet,
