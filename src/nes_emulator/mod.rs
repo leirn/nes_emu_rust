@@ -145,10 +145,10 @@ impl NesEmulator {
                         keycode: Some(sdl2::keyboard::Keycode::Escape), ..
                     } => { self.controller_1.borrow_mut().clear_select()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::Enter), ..
+                        keycode: Some(sdl2::keyboard::Keycode::Return), ..
                     } => { self.controller_1.borrow_mut().set_start()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::Enter), ..
+                        keycode: Some(sdl2::keyboard::Keycode::Return), ..
                     } => { self.controller_1.borrow_mut().clear_start()},
                     Event::KeyUp {
                         keycode: Some(sdl2::keyboard::Keycode::Space), ..

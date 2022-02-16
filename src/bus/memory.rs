@@ -136,7 +136,7 @@ impl Memory {
                     0x2005 => self.ppu.borrow_mut().write_0x2005(value),
                     0x2006 => self.ppu.borrow_mut().write_0x2006(value),
                     0x2007 => self.ppu.borrow_mut().write_0x2007(value),
-                    _ => (), // won"t happen based on local_address cimputation
+                    _ => (), // won"t happen based on local_address computation
                 }
             },
             0x4000..=0x4017 => {
@@ -152,8 +152,7 @@ impl Memory {
                     0x4014 => {
                         let start = address as usize;
                         let end = start + 0x100 - 1;
-                        let array[u8] = self.internal_ram[start..=end];
-                        self.ppu.borrow_mut().write_oamdma(array);
+                        self.ppu.borrow_mut().write_oamdma(&self.internal_ram[start..=end]);
                         return 514;
                     },
                     // Read APU
