@@ -269,7 +269,7 @@ impl Ppu {
         }
 
         if self.col == 256 {
-            self.sprite_fetcher_count: usize = 0;
+            self.sprite_fetcher_count = 0;
             self.clear_sprite_registers();
         }
 
