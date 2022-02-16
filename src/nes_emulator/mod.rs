@@ -114,6 +114,30 @@ impl NesEmulator {
                     Event::KeyDown {
                         keycode: Some(sdl2::keyboard::Keycode::P), ..
                     } => { self.toggle_pause()},
+                    Event::KeyDown {
+                        keycode: Some(sdl2::keyboard::Keycode::Up), ..
+                    } => { self.controller_1.borrow_mut().set_up()},
+                    Event::KeyUp {
+                        keycode: Some(sdl2::keyboard::Keycode::Up), ..
+                    } => { self.controller_1.borrow_mut().clear_up()},
+                    Event::KeyDown {
+                        keycode: Some(sdl2::keyboard::Keycode::Down), ..
+                    } => { self.controller_1.borrow_mut().set_down()},
+                    Event::KeyUp {
+                        keycode: Some(sdl2::keyboard::Keycode::Down), ..
+                    } => { self.controller_1.borrow_mut().clear_down()},
+                    Event::KeyDown {
+                        keycode: Some(sdl2::keyboard::Keycode::Left), ..
+                    } => { self.controller_1.borrow_mut().set_left()},
+                    Event::KeyUp {
+                        keycode: Some(sdl2::keyboard::Keycode::Left), ..
+                    } => { self.controller_1.borrow_mut().clear_left()},
+                    Event::KeyDown {
+                        keycode: Some(sdl2::keyboard::Keycode::Right), ..
+                    } => { self.controller_1.borrow_mut().set_right()},
+                    Event::KeyUp {
+                        keycode: Some(sdl2::keyboard::Keycode::Right), ..
+                    } => { self.controller_1.borrow_mut().clear_right()},
                     _ => ()
                 }
             }
