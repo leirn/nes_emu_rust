@@ -284,7 +284,7 @@ impl Ppu {
                 },
                 5 => {
                     // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
-                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 0] as u16;
+                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4] as u16;
                     let tile_address    = self.secondary_oam[self.sprite_fetcher_count * 4 + 1] as u16;
                     let attribute       = *self.sprite_attribute_table_register.back().unwrap();
                     let x_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 3];
@@ -312,10 +312,9 @@ impl Ppu {
                 7 => {
 
                     // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
-                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 0] as u16;
+                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4] as u16;
                     let tile_address    = self.secondary_oam[self.sprite_fetcher_count * 4 + 1] as u16;
                     let attribute       = *self.sprite_attribute_table_register.back().unwrap();
-                    let x_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 3];
 
                     let mut fine_y      = self.line - y_coordinate;
 
@@ -323,10 +322,6 @@ impl Ppu {
                     let flip_horizontally = (attribute >> 6) & 1 != 0;
                     let flip_vertically = (attribute >> 7) & 1 != 0;
 
-                    let mut flipping_offset: u16 = 0;
-                    if flip_vertically {
-                        flipping_offset = 8;
-                    }
                     if flip_horizontally {
                         fine_y = 7 - fine_y;
                     }
