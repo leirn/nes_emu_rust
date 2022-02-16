@@ -17,7 +17,7 @@ impl Clock {
     /// Instantiate new clock
     pub fn new(_target_framerate: u32) -> Clock{
         let frame_duration:u64 = (1_000_000_000f64 / _target_framerate as f64) as u64;
-        _target_frame_duration = Duration::from_nanos(frame_duration);
+        let _target_frame_duration = Duration::from_nanos(frame_duration);
         Clock{
             target_framerate: _target_framerate,
             target_frame_duration: _target_frame_duration,
@@ -27,13 +27,13 @@ impl Clock {
     }
 
     /// Tick at each frame and wait to reach the target frame rate
-    pub fn tick(&mut self, target_frame_rate: u32) {
+    pub fn tick(&mut self) {
         let since_the_epoch = self.start.duration_since(UNIX_EPOCH).unwrap();
         self.frame_history.push_back(since_the_epoch);
         if self.frame_history.len() > 11 {
             self.frame_history.pop_front();
             let frame_real_duration = since_the_epoch - *self.frame_history.back().unwrap();
-            sleep(target_frame_duration - frame_real_duration);
+            sleep(self.target_frame_duration - frame_real_duration);
         }
     }
 
