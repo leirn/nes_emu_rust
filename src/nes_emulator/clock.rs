@@ -26,7 +26,7 @@ impl Clock {
 
     /// Tick at each frame and wait to reach the target frame rate
     pub fn tick(&mut self) {
-        let since_the_epoch = self.start.duration_since(UNIX_EPOCH).unwrap();
+        let since_the_epoch = SystemTime::now().duration_since(self.start).unwrap();
         self.frame_history.push_back(since_the_epoch);
         if self.frame_history.len() > 11 {
             self.frame_history.pop_front();
@@ -40,6 +40,8 @@ impl Clock {
         if self.frame_history.len() < 11 {
             return 0f64;
         }
+        println!("{}", self.frame_history.back().unwrap().as_micros());
+        println!("{}", self.frame_history.front().unwrap().as_micros());
         let seconds_per_10_frames:f64 = (self.frame_history.back().unwrap().as_micros() - self.frame_history.front().unwrap().as_micros()) as f64 / 1_000_000_000f64;
         10f64 / (seconds_per_10_frames)
     }
