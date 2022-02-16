@@ -7,7 +7,7 @@ use std::thread::sleep;
 
 /// Internal clock component, used to cadence the whole execution
 pub struct Clock {
-    target_framerate: u32
+    target_framerate: u32,
     target_frame_duration: Duration,
     frame_history:VecDeque<Duration>,
     start: SystemTime,

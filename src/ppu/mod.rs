@@ -276,6 +276,7 @@ impl Ppu {
         if self.sprite_fetcher_count < self.secondary_oam_pointer && self.col > 256 && self.col < 321 {
             // During those cycles sprites are actually fetched for rendering in the next line
             match self.col % 8 {
+                // TODO : Split in 1, 3, 5, 7 to closer respect the real NES process
                 7 => {
 
                     // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
