@@ -19,6 +19,8 @@ pub struct NesEmulator {
     ppu: Rc<RefCell<crate::ppu::Ppu>>,
     cpu: Rc<RefCell<crate::cpu::Cpu>>,
     interrupt_bus: Rc<RefCell<crate::bus::interrupt::Interrupt>>,
+    controller_1: Rc<RefCell<crate::bus::controller::Controller>>,
+    controller_2: Rc<RefCell<crate::bus::controller::Controller>>,
     lines: Vec<String>,
     line_index: usize,
     parity: bool,
@@ -32,10 +34,12 @@ impl NesEmulator {
 
 
         let _interrupt_bus = Rc::new(RefCell::new(crate::bus::interrupt::Interrupt::new()));
+        let _controller_1 = Rc::new(RefCell::new(crate::bus::controller::Controller::new()));
+        let _controller_2 = Rc::new(RefCell::new(crate::bus::controller::Controller::new()));
         let _cartridge = Rc::new(RefCell::new(crate::cartridge::Cartridge::new(rom_file)));
         let _apu = Rc::new(RefCell::new(crate::apu::Apu::new()));
         let _ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(Rc::clone(&_cartridge), _sdl_context.clone(), Rc::clone(&_interrupt_bus))));
-        let _memory = Rc::new(RefCell::new(crate::bus::memory::Memory::new(Rc::clone(&_cartridge), Rc::clone(&_ppu), Rc::clone(&_apu))));
+        let _memory = Rc::new(RefCell::new(crate::bus::memory::Memory::new(Rc::clone(&_cartridge), Rc::clone(&_ppu), Rc::clone(&_apu), Rc::clone(&_controller_1), Rc::clone(&_controller_2))));
         let _cpu = Rc::new(RefCell::new(crate::cpu::Cpu::new(Rc::clone(&_memory))));
 
 
@@ -49,6 +53,8 @@ impl NesEmulator {
             apu: _apu,
             ppu: _ppu,
             cpu: _cpu,
+            controller_1: _controller_1,
+            controller_2: _controller_2,
             interrupt_bus: _interrupt_bus,
             lines: vec![],
             line_index: 0,

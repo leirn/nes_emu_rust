@@ -4,22 +4,27 @@ use std::rc::Rc;
 use crate::apu::Apu;
 use crate::ppu::Ppu;
 use crate::cartridge::Cartridge;
+use crate::bus::controller::Controller;
 
 pub struct Memory {
     internal_ram: [u8; 0x800],
     apu: Rc<RefCell<Apu>>,
     ppu: Rc<RefCell<Ppu>>,
+    controller_1: Rc<RefCell<Controller>>,
+    controller_2: Rc<RefCell<Controller>>,
     cartridge: Rc<RefCell<Cartridge>>,
 }
 
 impl Memory {
     /// Instantiate new Memory component
-    pub fn new(_cartridge: Rc<RefCell<Cartridge>>, _ppu: Rc<RefCell<Ppu>>, _apu: Rc<RefCell<Apu>>) -> Memory {
+    pub fn new(_cartridge: Rc<RefCell<Cartridge>>, _ppu: Rc<RefCell<Ppu>>, _apu: Rc<RefCell<Apu>>, _controller_1: Rc<RefCell<Controller>>, _controller_2: Rc<RefCell<Controller>>) -> Memory {
         Memory {
             internal_ram: [0; 0x800], // 2kB or internal RAM
             apu: _apu,
             ppu: _ppu,
             cartridge: _cartridge,
+            controller_1: _controller_1,
+            controller_2: _controller_2,
         }
     }
 

@@ -1,4 +1,4 @@
-struct Controller {
+pub struct Controller {
     status: u8,
 }
 
