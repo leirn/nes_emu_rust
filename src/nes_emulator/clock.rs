@@ -2,7 +2,7 @@
 //! Allows to managed the framerate
 
 use std::collections::VecDeque;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 use std::thread::sleep;
 
 /// Internal clock component, used to cadence the whole execution
@@ -26,11 +26,11 @@ impl Clock {
 
     /// Tick at each frame and wait to reach the target frame rate
     pub fn tick(&mut self) {
-        let since_the_epoch = SystemTime::now().duration_since(self.start).unwrap();
-        self.frame_history.push_back(since_the_epoch);
+        let since_start = SystemTime::now().duration_since(self.start).unwrap();
+        self.frame_history.push_back(since_start);
         if self.frame_history.len() > 11 {
             self.frame_history.pop_front();
-            let frame_real_duration = since_the_epoch - *self.frame_history.back().unwrap();
+            let frame_real_duration = since_start - *self.frame_history.back().unwrap();
             sleep(self.target_frame_duration - frame_real_duration);
         }
     }

@@ -73,6 +73,7 @@ impl Screen {
 
     /// Update a scaled pixel on the buffered canvas
     pub fn update_pixel(&mut self, x: u8, y: u8, color_index: u8) {
+        let color_index = color_index % 64;
         self.canvas.set_draw_color(PALETTE[color_index as usize]);
         if let Err(e) = self.canvas.fill_rect(sdl2::rect::Rect::new(self.scale as i32 * x as i32, self.scale as i32 * y as i32, self.scale, self.scale)) {
             println!("{:?}", e);
