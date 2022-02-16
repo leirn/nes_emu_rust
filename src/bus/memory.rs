@@ -94,13 +94,13 @@ impl Memory {
                     0x4016 => {
                         let value = self.controller_1_status & 1;
                         self.controller_1_status >>= 1;
-                        return value;
+                        value
                     },
                     // Read input 2
                     0x4017 => {
                         let value = self.controller_2_status & 1;
                         self.controller_2_status >>= 1;
-                        return value;
+                        value
                     },
                     // Read APU
                     _ => self.apu.borrow_mut().read_registers(address),

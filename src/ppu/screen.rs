@@ -52,8 +52,8 @@ impl Screen {
         // change the color of our drawing with a gold-color ...
         self.canvas.set_draw_color(PALETTE[36]);
         // A draw a rectangle which almost fills our window with it !
-        match self.canvas.fill_rect(sdl2::rect::Rect::new(10, 10, 256 * 3 - 20, 240 * 3 - 20)) {
-            Err(e) => println!("{:?}", e),
+        if let Err(e) = self.canvas.fill_rect(sdl2::rect::Rect::new(10, 10, 256 * 3 - 20, 240 * 3 - 20)) {
+            println!("{:?}", e);
             _ => ()
         }
 
@@ -75,9 +75,8 @@ impl Screen {
     /// Update a scaled pixel on the buffered canvas
     pub fn update_pixel(&mut self, x: u8, y: u8, color_index: u8) {
         self.canvas.set_draw_color(PALETTE[color_index as usize]);
-        match self.canvas.fill_rect(sdl2::rect::Rect::new(self.scale as i32 * x as i32, self.scale as i32 * y as i32, self.scale, self.scale)) {
-            Err(e) => println!("{:?}", e),
-            _ => ()
+        if let Err(e) = self.canvas.fill_rect(sdl2::rect::Rect::new(self.scale as i32 * x as i32, self.scale as i32 * y as i32, self.scale, self.scale)) {
+            println!("{:?}", e);
         }
     }
 

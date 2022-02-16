@@ -1258,8 +1258,8 @@ impl Cpu {
 
     /// Function call for ISC $xx. Zero Page
     fn fn_0xe7(&mut self) -> (u16, u32) {
-        let value = self.get_zero_page_value();
-        let value = value + 1;
+        let mut value = self.get_zero_page_value();
+        value += 1;
         self.set_zero_page(value);
         self.sbc(value);
         (2, 5)
@@ -1267,8 +1267,8 @@ impl Cpu {
 
     /// Function call for ISC $xx, X. Zero Page, X
     fn fn_0xf7(&mut self) -> (u16, u32) {
-        let value = self.get_zero_page_x_value();
-        let value = value + 1;
+        let mut value = self.get_zero_page_x_value();
+        value += 1;
         self.set_zero_page_x(value);
         self.sbc(value);
         (2, 6)
@@ -1276,8 +1276,8 @@ impl Cpu {
 
     /// Function call for ISC $xxxx. Absolute
     fn fn_0xef(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_value();
-        let value = value + 1;
+        let mut value = self.get_absolute_value();
+        value += 1;
         self.set_absolute(value);
         self.sbc(value);
         (3, 6)
@@ -1285,8 +1285,8 @@ impl Cpu {
 
     /// Function call for ISC $xxxx, X. Absolute, X
     fn fn_0xff(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_x_value(false);
-        let value = value + 1;
+        let mut value = self.get_absolute_x_value(false);
+        value += 1;
         self.set_absolute_x(value, false);
         self.sbc(value);
         (3, 7)
@@ -1294,8 +1294,8 @@ impl Cpu {
 
     /// Function call for ISC $xxxx, Y. Absolute, Y
     fn fn_0xfb(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_y_value(false);
-        let value = value + 1;
+        let mut value = self.get_absolute_y_value(false);
+        value += 1;
         self.set_absolute_y(value, false);
         self.sbc(value);
         (3, 7)
@@ -1303,8 +1303,8 @@ impl Cpu {
 
     /// Function call for ISC ($xx), X. Indirect, X
     fn fn_0xe3(&mut self) -> (u16, u32) {
-        let value = self.get_indirect_x_value();
-        let value = value + 1;
+        let mut value = self.get_indirect_x_value();
+        value += 1;
         self.set_indirect_x(value);
         self.sbc(value);
         (2, 8)
@@ -1312,8 +1312,8 @@ impl Cpu {
 
     /// Function call for ISC ($xx, Y). Indirect, Y
     fn fn_0xf3(&mut self) -> (u16, u32) {
-        let value = self.get_indirect_y_value(true);
-        let value = value + 1;
+        let mut value = self.get_indirect_y_value(true);
+        value += 1;
         self.set_indirect_y(value, true);
         self.sbc(value);
         (2, 6)
@@ -1447,8 +1447,8 @@ impl Cpu {
 
     /// Function call for INC $xx. Zero Page
     fn fn_0xe6(&mut self) -> (u16, u32) {
-        let value = self.get_zero_page_value();
-        let value = value + 1;
+        let mut value = self.get_zero_page_value();
+        value += 1;
         self.set_zero_page(value);
         self.set_flags_nz(value);
         (2, 5)
@@ -1456,8 +1456,8 @@ impl Cpu {
 
     /// Function call for INC $xx, X. Zero Page, X
     fn fn_0xf6(&mut self) -> (u16, u32) {
-        let value = self.get_zero_page_x_value();
-        let value = value + 1;
+        let mut value = self.get_zero_page_x_value();
+        value += 1;
         self.set_zero_page_x(value);
         self.set_flags_nz(value);
         (2, 6)
@@ -1465,8 +1465,8 @@ impl Cpu {
 
     /// Function call for INC $xxxx. Absolute
     fn fn_0xee(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_value();
-        let value = value + 1;
+        let mut value = self.get_absolute_value();
+        value += 1;
         self.set_absolute(value);
         self.set_flags_nz(value);
         (3, 6)
@@ -1474,8 +1474,8 @@ impl Cpu {
 
     /// Function call for INC $xxxx, X. Absolute, X
     fn fn_0xfe(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_x_value(true);
-        let value = value + 1;
+        let mut value = self.get_absolute_x_value(true);
+        value += 1;
         self.set_absolute_x(value, true);
         self.set_flags_nz(value);
         (3, 7)
@@ -1492,7 +1492,7 @@ impl Cpu {
         let mut address = self.get_absolute_address();
         if address & 0xFF == 0xFF {
             // Strange behaviour in nestest.nes where direct jump to re-aligned address where address at end of page
-            address = address + 1;
+            address += 1;
         } else {
             address = self.memory.borrow_mut().read_rom_16(address);
         }
