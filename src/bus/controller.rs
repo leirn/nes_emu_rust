@@ -3,9 +3,16 @@ pub struct Controller {
 }
 
 impl Controller {
+    /// Instanciate new controller
+    pub fn new() -> Controller {
+        Controller {
+            status: 0,
+        }
+    }
+
     /// Get controller status
     pub fn get_status(&self) -> u8 {
-        status
+        self.status
     }
 
     /// Set when A button is press

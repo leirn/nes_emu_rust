@@ -27,6 +27,8 @@ impl Memory {
             cartridge: _cartridge,
             controller_1: _controller_1,
             controller_2: _controller_2,
+            controller_1_status: 0,
+            controller_2_status: 0,
         }
     }
 
@@ -149,8 +151,8 @@ impl Memory {
                     // OAMDMA
                     0x4014 => {
                         let start = address as usize;
-                        let end = addrstartess + 0x100;
-                        self.ppu.write_oamdma(self.internal_ram[start..end]);
+                        let end = start + 0x100;
+                        self.ppu.borrow_mut().write_oamdma(self.internal_ram[start..end]);
                         return 514;
                     },
                     // Read APU

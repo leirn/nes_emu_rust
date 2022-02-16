@@ -27,7 +27,7 @@ pub struct Ppu {
     primary_oam: [u8; 0x100],
     secondary_oam: [u8; 0x40],
     sprite_count: u8,
-    sprite_fetcher_count: u8,
+    sprite_fetcher_count: usize,
     secondary_oam_pointer: u8,
 
     // Cycle management
@@ -490,7 +490,7 @@ impl Ppu {
     }
 
     /// Write OAM with memory from main vram passed in value
-    fn write_oamdma(&mut self, value: &[u8; 0x100]) {
+    pub fn write_oamdma(&mut self, value: &[u8; 0x100]) {
         let max = 0xff - self.oamaddr;
         for i in 0..=max {
             self.primary_oam[(self.oamaddr + i) as usize] = value[i as usize];

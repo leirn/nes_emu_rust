@@ -32,6 +32,7 @@ fn main() {
         ap.parse_args_or_exit();
     }
 
+    // TODO : convert to relative path
     let settings =
         load_file("C:/Users/laure/OneDrive/Documents/GitHub/nes_emu_rust/src/config.yaml");
 
