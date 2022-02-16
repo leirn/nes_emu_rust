@@ -43,7 +43,7 @@ impl NesEmulator {
             pause: false,
             is_test_mode: false,
             sdl_context: _sdl_context,
-            clock: clock::Clock::new(),
+            clock: clock::Clock::new(60), // 60 fps target
             cartridge: _cartridge,
             memory: _memory,
             apu: _apu,
@@ -92,7 +92,7 @@ impl NesEmulator {
                 }
 
                 if self.interrupt_bus.borrow_mut().check_and_clear_frame_updated() {
-                    self.clock.tick(60);
+                    self.clock.tick();
                     println!("FPS : {}", self.clock.get_fps());
                 }
             }
