@@ -839,9 +839,9 @@ impl Cpu {
 
     /// Function call for ASL $xx. Zero Page
     fn fn_0x06(&mut self) -> (u16, u32) {
-        let value = self.get_zero_page_value();
+        let mut value = self.get_zero_page_value();
         self.carry = (value >> 7) != 0;
-        let value <<= 1;
+        value <<= 1;
         self.set_zero_page(value);
         self.set_flags_nz(value);
         (2, 5)
@@ -849,9 +849,9 @@ impl Cpu {
 
     /// Function call for ASL $xx, X. Zero Page, X
     fn fn_0x16(&mut self) -> (u16, u32) {
-        let value = self.get_zero_page_x_value();
+        let mut value = self.get_zero_page_x_value();
         self.carry = (value >> 7) != 0;
-        let value <<= 1;
+        value <<= 1;
         self.set_zero_page_x(value);
         self.set_flags_nz(value);
         (2, 6)
@@ -859,9 +859,9 @@ impl Cpu {
 
     /// Function call for ASL $xxxx. Absolute///
     fn fn_0x0e(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_value();
+        let mut value = self.get_absolute_value();
         self.carry = (value >> 7) != 0;
-        let value <<= 1;
+        value <<= 1;
         self.set_absolute(value);
         self.set_flags_nz(value);
         (3, 6)
@@ -869,9 +869,9 @@ impl Cpu {
 
     /// Function call for ASL $xxxx, X. Absolute, X///
     fn fn_0x1e(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_x_value(true);
+        let mut value = self.get_absolute_x_value(true);
         self.carry = (value >> 7) != 0;
-        let value <<= 1;
+        value <<= 1;
         self.set_absolute_x(value, true);
         self.set_flags_nz(value);
         (3, 7)
@@ -879,9 +879,9 @@ impl Cpu {
 
     /// Function call for ASL $xxxx, X. Absolute, X///
     fn fn_0x1e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_x_value(false);
+        let mut value = self.get_absolute_x_value(false);
         self.carry = (value >> 7) != 0;
-        let value <<= 1;
+        value <<= 1;
         self.set_absolute_x(value, false);
         self.set_flags_nz(value);
         (3, 7)
@@ -1984,9 +1984,9 @@ impl Cpu {
     ///     ASL
     ///     ORA
     fn fn_0x1b(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_y_value(false);
+        let mut value = self.get_absolute_y_value(false);
         self.carry = (value >> 7) != 0;
-        let value <<= 1;
+        value <<= 1;
         self.set_absolute_y(value, false);
         self.fn_0x19_with_no_additionnal_cycles(); // ORA
         (3, 7)
@@ -1997,9 +1997,9 @@ impl Cpu {
     ///     ASL
     ///     ORA
     fn fn_0x03(&mut self) -> (u16, u32) {
-        let value = self.get_indirect_x_value();
+        let mut value = self.get_indirect_x_value();
         self.carry = (value >> 7) != 0;
-        let value <<= 1;
+        value <<= 1;
         self.set_indirect_x(value);
         self.fn_0x01(); // ORA
         (2, 8)
@@ -2010,9 +2010,9 @@ impl Cpu {
     ///     ASL
     ///     ORA
     fn fn_0x13(&mut self) -> (u16, u32) {
-        let value = self.get_indirect_y_value(false);
+        let mut value = self.get_indirect_y_value(false);
         self.carry = (value >> 7) != 0;
-        let value <<= 1;
+        value <<= 1;
         self.set_indirect_y(value, false);
         self.fn_0x11_with_no_additionnal_cycles(); // ORA
         (2, 8)
