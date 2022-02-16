@@ -7,7 +7,6 @@ use std::thread::sleep;
 
 /// Internal clock component, used to cadence the whole execution
 pub struct Clock {
-    target_framerate: u32,
     target_frame_duration: Duration,
     frame_history:VecDeque<Duration>,
     start: SystemTime,
@@ -19,7 +18,6 @@ impl Clock {
         let frame_duration:u64 = (1_000_000_000f64 / _target_framerate as f64) as u64;
         let _target_frame_duration = Duration::from_nanos(frame_duration);
         Clock{
-            target_framerate: _target_framerate,
             target_frame_duration: _target_frame_duration,
             frame_history: VecDeque::new(),
             start: SystemTime::now(),

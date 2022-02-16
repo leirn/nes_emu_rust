@@ -269,7 +269,7 @@ impl Ppu {
         }
 
         if self.col == 256 {
-            self.sprite_fetcher_count = 0;
+            self.sprite_fetcher_count: usize = 0;
             self.clear_sprite_registers();
         }
 
@@ -277,13 +277,17 @@ impl Ppu {
             // During those cycles sprites are actually fetched for rendering in the next line
             match self.col % 8 {
                 // TODO : Split in 1, 3, 5, 7 to closer respect the real NES process
-                7 => {
-
+                1 => (),
+                3 => {
+                    let attribute = self.secondary_oam[self.sprite_fetcher_count * 4 + 2];
+                    self.sprite_attribute_table_register.push_back(attribute);
+                },
+                5 => {
                     // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
-                    let y_coordinate    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 0) as usize] as u16;
-                    let tile_address    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 1) as usize] as u16;
-                    let attribute       = self.secondary_oam[(self.sprite_fetcher_count * 4 + 2) as usize];
-                    let x_coordinate    = self.secondary_oam[(self.sprite_fetcher_count * 4 + 3) as usize];
+                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 0] as u16;
+                    let tile_address    = self.secondary_oam[self.sprite_fetcher_count * 4 + 1] as u16;
+                    let attribute       = *self.sprite_attribute_table_register.back().unwrap();
+                    let x_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 3];
 
                     let mut fine_y      = self.line - y_coordinate;
 
@@ -302,9 +306,32 @@ impl Ppu {
                     let chr_bank = ((self.ppuctrl as u16 >> 3) & 1) * 0x1000;
                     let low_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16u16 * tile_address + fine_y + flipping_offset);
 
-                    self.sprite_attribute_table_register.push_back(attribute);
                     self.sprite_x_coordinate_table_register.push_back(x_coordinate);
                     self.sprite_low_byte_table_register.push_back(low_sprite_tile_byte);
+                },
+                7 => {
+
+                    // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
+                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 0] as u16;
+                    let tile_address    = self.secondary_oam[self.sprite_fetcher_count * 4 + 1] as u16;
+                    let attribute       = *self.sprite_attribute_table_register.back().unwrap();
+                    let x_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 3];
+
+                    let mut fine_y      = self.line - y_coordinate;
+
+                    // Flipping
+                    let flip_horizontally = (attribute >> 6) & 1 != 0;
+                    let flip_vertically = (attribute >> 7) & 1 != 0;
+
+                    let mut flipping_offset: u16 = 0;
+                    if flip_vertically {
+                        flipping_offset = 8;
+                    }
+                    if flip_horizontally {
+                        fine_y = 7 - fine_y;
+                    }
+
+                    let chr_bank = ((self.ppuctrl as u16 >> 3) & 1) * 0x1000;
 
                     let mut flipping_offset: u16 = 8;
                     if flip_vertically {
@@ -419,8 +446,8 @@ impl Ppu {
 
     /// Update PPU internal register when CPU write 0x2005 memory address
     pub fn write_0x2005(&mut self, value: u8) {
-        self.ppuscroll = ((self.ppuscroll << 8 ) + value as u16 ) & 0xffff;
-        if self.register_w == false {
+        self.ppuscroll = (self.ppuscroll << 8 ) + value as u16;
+        if !self.register_w {
             self.register_t = (self.register_t & 0b111111111100000) | ((value as u16) >> 5);
             self.register_x = value & 0b111;
             self.register_w = true;
@@ -433,8 +460,8 @@ impl Ppu {
 
     /// Update PPU internal register when CPU write 0x2006 memory address
     pub fn write_0x2006(&mut self, value: u8) {
-        self.ppuaddr = ((self.ppuaddr << 8 ) + value as u16 ) & 0xffff;
-        if self.register_w == false {
+        self.ppuaddr = (self.ppuaddr << 8 ) + value as u16;
+        if !self.register_w {
             self.register_t = (self.register_t & 0b000000011111111) | ((value as u16 & 0b00111111) << 8);
             self.register_w = true;
         }

@@ -388,7 +388,7 @@ impl Cpu {
     /// Otherwise, execute the next opcode
     pub fn next(&mut self) {
         if self.remaining_cycles > 0 {
-            self.remaining_cycles = self.remaining_cycles - 1;
+            self.remaining_cycles -= 1;
             return
         }
 
@@ -465,12 +465,12 @@ impl Cpu {
         self.memory
             .borrow_mut()
             .write_rom(0x0100 | (self.stack_pointer as u16), value);
-        self.stack_pointer = self.stack_pointer - 1; // Will eventually overflow on purpose
+        self.stack_pointer -= 1; // Will eventually overflow on purpose
     }
 
     /// Pop/Pull value from stack
     fn pull(&mut self) -> u8 {
-        self.stack_pointer = self.stack_pointer + 1; // Will eventually overflow on purpose
+        self.stack_pointer += 1; // Will eventually overflow on purpose
         self.memory
             .borrow_mut()
             .read_rom(0x0100 | (self.stack_pointer as u16))
@@ -506,7 +506,7 @@ impl Cpu {
 
     /// Get ZeroPage address to be used for current opcode and X register
     fn get_zero_page_x_address(&mut self) -> u16 {
-        ((self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.x_register) & 255)
+        (self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.x_register)
             as u16
     }
 
@@ -524,7 +524,7 @@ impl Cpu {
 
     /// Get ZeroPage address to be used for current opcode and Y register
     fn get_zero_page_y_address(&mut self) -> u16 {
-        ((self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.y_register) & 255)
+        (self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.y_register)
             as u16
     }
 
@@ -668,10 +668,10 @@ impl Cpu {
 
     /// Perform ADC operation for val
     fn adc(&mut self, value: u8) {
-        let adc: u16 = (value as u16) + (self.accumulator as u16) + (self.carry as u16);
-        self.carry = ((adc >> 8) & 1) != 0;
-        let result: u8 = (0xff & adc) as u8;
-
+        //let adc: u16 = (value as u16) + (self.accumulator as u16) + (self.carry as u16);
+        //self.carry = ((adc >> 8) & 1) != 0;
+        //let result: u8 = (0xff & adc) as u8;
+        (let result, self.carry) = self.accumulator.carrying_add(value, self.carry);
         self.overflow = (!!((self.accumulator ^ result) & (value ^ result) & 0x80)) != 0;
         self.accumulator = result;
         self.set_flags_nz(self.accumulator);
@@ -833,7 +833,7 @@ impl Cpu {
     /// Function call for ASL. Accumulator
     fn fn_0x0a(&mut self) -> (u16, u32) {
         self.carry = (self.accumulator >> 7) != 0;
-        self.accumulator = (self.accumulator << 1) & 0b11111111;
+        self.accumulator = self.accumulator << 1;
         self.set_flags_nz(self.accumulator);
         (1, 2)
     }
@@ -842,7 +842,7 @@ impl Cpu {
     fn fn_0x06(&mut self) -> (u16, u32) {
         let value = self.get_zero_page_value();
         self.carry = (value >> 7) != 0;
-        let value = (value << 1) & 0b11111111;
+        let value <<= 1;
         self.set_zero_page(value);
         self.set_flags_nz(value);
         (2, 5)
@@ -852,7 +852,7 @@ impl Cpu {
     fn fn_0x16(&mut self) -> (u16, u32) {
         let value = self.get_zero_page_x_value();
         self.carry = (value >> 7) != 0;
-        let value = (value << 1) & 0b11111111;
+        let value <<= 1;
         self.set_zero_page_x(value);
         self.set_flags_nz(value);
         (2, 6)
@@ -862,7 +862,7 @@ impl Cpu {
     fn fn_0x0e(&mut self) -> (u16, u32) {
         let value = self.get_absolute_value();
         self.carry = (value >> 7) != 0;
-        let value = (value << 1) & 0b11111111;
+        let value <<= 1;
         self.set_absolute(value);
         self.set_flags_nz(value);
         (3, 6)
@@ -872,7 +872,7 @@ impl Cpu {
     fn fn_0x1e(&mut self) -> (u16, u32) {
         let value = self.get_absolute_x_value(true);
         self.carry = (value >> 7) != 0;
-        let value = (value << 1) & 0b11111111;
+        let value <<= 1;
         self.set_absolute_x(value, true);
         self.set_flags_nz(value);
         (3, 7)
@@ -882,7 +882,7 @@ impl Cpu {
     fn fn_0x1e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
         let value = self.get_absolute_x_value(false);
         self.carry = (value >> 7) != 0;
-        let value = (value << 1) & 0b11111111;
+        let value <<= 1;
         self.set_absolute_x(value, false);
         self.set_flags_nz(value);
         (3, 7)
@@ -1641,7 +1641,7 @@ impl Cpu {
     /// Function call for LSR. Accumulator
     fn fn_0x4a(&mut self) -> (u16, u32) {
         self.carry = self.accumulator == 1;
-        self.accumulator = self.accumulator >> 1;
+        self.accumulator >>= 1;
         self.set_flags_nz(self.accumulator);
         (1, 2)
     }
@@ -1650,7 +1650,7 @@ impl Cpu {
     fn fn_0x46(&mut self) -> (u16, u32) {
         let value = self.get_zero_page_value();
         self.carry = (value & 1) == 1;
-        let value = value >> 1;
+        let value >>= 1;
         self.set_zero_page(value);
         self.set_flags_nz(value);
         (2, 5)
@@ -1660,7 +1660,7 @@ impl Cpu {
     fn fn_0x56(&mut self) -> (u16, u32) {
         let value = self.get_zero_page_x_value();
         self.carry = (value & 1) == 1;
-        let value = value >> 1;
+        let value >>= 1;
         self.set_zero_page_x(value);
         self.set_flags_nz(value);
         (2, 6)
@@ -1670,7 +1670,7 @@ impl Cpu {
     fn fn_0x4e(&mut self) -> (u16, u32) {
         let value = self.get_absolute_value();
         self.carry = (value & 1) == 1;
-        let value = value >> 1;
+        let value >>= 1;
         self.set_absolute(value);
         self.set_flags_nz(value);
         (3, 6)
@@ -1680,7 +1680,7 @@ impl Cpu {
     fn fn_0x5e(&mut self) -> (u16, u32) {
         let value = self.get_absolute_x_value(true);
         self.carry = (value & 1) == 1;
-        let value = value >> 1;
+        let value >>= 1;
         self.set_absolute_x(value, true);
         self.set_flags_nz(value);
         (3, 7)
@@ -1690,7 +1690,7 @@ impl Cpu {
     fn fn_0x5e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
         let value = self.get_absolute_x_value(false);
         self.carry = (value & 1) == 1;
-        let value = value >> 1;
+        let value >>= 1;
         self.set_absolute_x(value, false);
         self.set_flags_nz(value);
         (3, 7)
@@ -1987,7 +1987,7 @@ impl Cpu {
     fn fn_0x1b(&mut self) -> (u16, u32) {
         let value = self.get_absolute_y_value(false);
         self.carry = (value >> 7) != 0;
-        let value = (value << 1) & 0b11111111;
+        let value <<= 1;
         self.set_absolute_y(value, false);
         self.fn_0x19_with_no_additionnal_cycles(); // ORA
         (3, 7)
@@ -2000,7 +2000,7 @@ impl Cpu {
     fn fn_0x03(&mut self) -> (u16, u32) {
         let value = self.get_indirect_x_value();
         self.carry = (value >> 7) != 0;
-        let value = (value << 1) & 0b11111111;
+        let value <<= 1;
         self.set_indirect_x(value);
         self.fn_0x01(); // ORA
         (2, 8)
@@ -2013,7 +2013,7 @@ impl Cpu {
     fn fn_0x13(&mut self) -> (u16, u32) {
         let value = self.get_indirect_y_value(false);
         self.carry = (value >> 7) != 0;
-        let value = (value << 1) & 0b11111111;
+        let value <<= 1;
         self.set_indirect_y(value, false);
         self.fn_0x11_with_no_additionnal_cycles(); // ORA
         (2, 8)
@@ -2278,14 +2278,14 @@ impl Cpu {
 
     /// Function call for DEX. Implied
     fn fn_0xca(&mut self) -> (u16, u32) {
-        self.x_register = self.x_register - 1;
+        self.x_register -= 1;
         self.set_flags_nz(self.x_register);
         (1, 2)
     }
 
     /// Function call for INX. Implied
     fn fn_0xe8(&mut self) -> (u16, u32) {
-        self.x_register = self.x_register + 1;
+        self.x_register += 1;
         self.set_flags_nz(self.x_register);
         (1, 2)
     }
@@ -2306,14 +2306,14 @@ impl Cpu {
 
     /// Function call for DEY. Implied
     fn fn_0x88(&mut self) -> (u16, u32) {
-        self.y_register = self.y_register - 1;
+        self.y_register -= 1;
         self.set_flags_nz(self.y_register);
         (1, 2)
     }
 
     /// Function call for INY. Implied
     fn fn_0xc8(&mut self) -> (u16, u32) {
-        self.y_register = self.y_register + 1;
+        self.y_register += 1;
         self.set_flags_nz(self.y_register);
         (1, 2)
     }

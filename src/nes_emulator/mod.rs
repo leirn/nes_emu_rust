@@ -140,12 +140,10 @@ impl NesEmulator {
         let mut opcode_arg_1 = "  ".to_string();
         let mut opcode_arg_2 = "  ".to_string();
         if OPCODES[&opcode].len > 1 {
-            let tmp_string = format!("{:02x}", self.memory.borrow_mut().read_rom(cpu_status.program_counter + 1));
-            opcode_arg_1 = tmp_string.clone();
+            opcode_arg_1 = format!("{:02x}", self.memory.borrow_mut().read_rom(cpu_status.program_counter + 1));
         }
         if OPCODES[&opcode].len > 2 {
-            let tmp_string = format!("{:02x}", self.memory.borrow_mut().read_rom(cpu_status.program_counter + 2));
-            opcode_arg_2 = tmp_string.clone();
+            opcode_arg_2 = format!("{:02x}", self.memory.borrow_mut().read_rom(cpu_status.program_counter + 2));
         }
 
         let log_status = LogFileLine::new(current_line.as_str());

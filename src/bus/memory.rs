@@ -128,7 +128,9 @@ impl Memory {
                     0x4016 => (),
                     // OAMDMA
                     0x4014 => {
-                        return 514
+                        let end = address + 0x100;
+                        self.ppu.write_oamdma(self.internal_ram[address..end]);
+                        return 514;
                     },
                     // Read APU
                     _ => self.apu.borrow_mut().write_registers(address, value),
