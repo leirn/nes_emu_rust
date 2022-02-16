@@ -3,6 +3,12 @@ name = "nes_emu_rust"
 version = "0.1.0"
 authors = ["leirn"]
 edition = "2018"
+description = "Nintendo Entertainment System rusty emulator"
+repository = "https://github.com/leirn/nes_emu_rust/"
+readme = "README.md"
+keywords = ["NES", "Nintendo", "Famicom", "emulator"]
+license = "MIT"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,3 +21,14 @@ regex = "1"
 
 [profile.dev]
 overflow-checks = false
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+overflow-checks = false
+codegen-units = 1 # Useful for optimizing code
+panic = "abort"
+
+[env]
+# Set ENV_VAR_NAME=value for any process run by Cargo
+RUST_BACKTRACE = 1

@@ -6,6 +6,8 @@ use std::rc::Rc;
 
 pub mod opcodes;
 
+type InstructionCallbackTable = HashMap<u8, fn(&mut Cpu) -> (u16, u32)>;
+
 pub struct Status {
     pub program_counter: u16,
     pub stack_pointer: u8,
@@ -37,7 +39,7 @@ pub struct Cpu {
     carry: bool,
 
     // Instructions calls
-    instructions: HashMap<u8, fn(&mut Cpu) -> (u16, u32)>,
+    instructions: InstructionCallbackTable,
 
     // Other states
     total_cycles: u32,
@@ -367,7 +369,7 @@ impl Cpu {
 
         // Default is equivalent to JMP ($FFFC)
         if entry_point == None {
-            self.program_counter = entry_point.unwrap_or(self.memory.borrow_mut().read_rom_16(0xfffc));
+            self.program_counter = entry_point.unwrap_or_else(self.memory.borrow_mut().read_rom_16(0xfffc));
         }
         else {
             self.program_counter = entry_point.unwrap();
