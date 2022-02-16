@@ -1647,9 +1647,9 @@ impl Cpu {
 
     /// Function call for LSR $xx. Zero Page
     fn fn_0x46(&mut self) -> (u16, u32) {
-        let value = self.get_zero_page_value();
+        let mut value = self.get_zero_page_value();
         self.carry = (value & 1) == 1;
-        let value >>= 1;
+        value >>= 1;
         self.set_zero_page(value);
         self.set_flags_nz(value);
         (2, 5)
@@ -1657,9 +1657,9 @@ impl Cpu {
 
     /// Function call for LSR $xx, X. Zero Page, X
     fn fn_0x56(&mut self) -> (u16, u32) {
-        let value = self.get_zero_page_x_value();
+        let mut value = self.get_zero_page_x_value();
         self.carry = (value & 1) == 1;
-        let value >>= 1;
+        value >>= 1;
         self.set_zero_page_x(value);
         self.set_flags_nz(value);
         (2, 6)
@@ -1667,9 +1667,9 @@ impl Cpu {
 
     /// Function call for LSR $xxxx. Absolute
     fn fn_0x4e(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_value();
+        let mut value = self.get_absolute_value();
         self.carry = (value & 1) == 1;
-        let value >>= 1;
+        value >>= 1;
         self.set_absolute(value);
         self.set_flags_nz(value);
         (3, 6)
@@ -1677,9 +1677,9 @@ impl Cpu {
 
     /// Function call for LSR $xxxx, X. Absolute, X
     fn fn_0x5e(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_x_value(true);
+        let mut value = self.get_absolute_x_value(true);
         self.carry = (value & 1) == 1;
-        let value >>= 1;
+        value >>= 1;
         self.set_absolute_x(value, true);
         self.set_flags_nz(value);
         (3, 7)
@@ -1687,9 +1687,9 @@ impl Cpu {
 
     /// Function call for LSR $xxxx, X. Absolute, X
     fn fn_0x5e_with_no_additionnal_cycles(&mut self) -> (u16, u32) {
-        let value = self.get_absolute_x_value(false);
+        let mut value = self.get_absolute_x_value(false);
         self.carry = (value & 1) == 1;
-        let value >>= 1;
+        value >>= 1;
         self.set_absolute_x(value, false);
         self.set_flags_nz(value);
         (3, 7)
