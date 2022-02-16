@@ -12,6 +12,8 @@ pub struct Memory {
     ppu: Rc<RefCell<Ppu>>,
     controller_1: Rc<RefCell<Controller>>,
     controller_2: Rc<RefCell<Controller>>,
+    controller_1_status: u8,
+    controller_2_status: u8,
     cartridge: Rc<RefCell<Cartridge>>,
 }
 
@@ -87,9 +89,17 @@ impl Memory {
             0x4000..=0x4017 => {
                 match address {
                     // Read input 1
-                    0x4016 => 0,
+                    0x4016 => {
+                        let value = self.controller_1_status & 1;
+                        self.controller_1_status >>= 1;
+                        return value;
+                    },
                     // Read input 2
-                    0x4017 => 0,
+                    0x4017 => {
+                        let value = self.controller_2_status & 1;
+                        self.controller_2_status >>= 1;
+                        return value;
+                    },
                     // Read APU
                     _ => self.apu.borrow_mut().read_registers(address),
                 }
@@ -130,11 +140,17 @@ impl Memory {
             0x4000..=0x4017 => {
                 match address {
                     // Save inputs 1 and 2
-                    0x4016 => (),
+                    0x4016 => {
+                        if value & 1 == 0 {
+                            self.controller_1_status = self.controller_1.borrow_mut().get_status();
+                            self.controller_2_status = self.controller_2.borrow_mut().get_status();
+                        }
+                    },
                     // OAMDMA
                     0x4014 => {
-                        let end = address + 0x100;
-                        self.ppu.write_oamdma(self.internal_ram[address..end]);
+                        let start = address as usize;
+                        let end = addrstartess + 0x100;
+                        self.ppu.write_oamdma(self.internal_ram[start..end]);
                         return 514;
                     },
                     // Read APU

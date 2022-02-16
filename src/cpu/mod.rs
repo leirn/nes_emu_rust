@@ -668,10 +668,9 @@ impl Cpu {
 
     /// Perform ADC operation for val
     fn adc(&mut self, value: u8) {
-        //let adc: u16 = (value as u16) + (self.accumulator as u16) + (self.carry as u16);
-        //self.carry = ((adc >> 8) & 1) != 0;
-        //let result: u8 = (0xff & adc) as u8;
-        (let result, self.carry) = self.accumulator.carrying_add(value, self.carry);
+        let adc: u16 = (value as u16) + (self.accumulator as u16) + (self.carry as u16);
+        self.carry = ((adc >> 8) & 1) != 0;
+        let result: u8 = (0xff & adc) as u8;
         self.overflow = (!!((self.accumulator ^ result) & (value ^ result) & 0x80)) != 0;
         self.accumulator = result;
         self.set_flags_nz(self.accumulator);
