@@ -490,7 +490,7 @@ impl Ppu {
     }
 
     /// Write OAM with memory from main vram passed in value
-    pub fn write_oamdma(&mut self, value: &[u8]) {
+    pub fn write_oamdma(&mut self, value: [u8]) {
         let max = 0xff - self.oamaddr;
         for i in 0..=max {
             self.primary_oam[(self.oamaddr + i) as usize] = *value[i as usize];

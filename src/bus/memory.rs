@@ -151,8 +151,9 @@ impl Memory {
                     // OAMDMA
                     0x4014 => {
                         let start = address as usize;
-                        let end = start + 0x100;
-                        self.ppu.borrow_mut().write_oamdma(&self.internal_ram[start..end]);
+                        let end = start + 0x100 - 1;
+                        let array[u8] = self.internal_ram[start..=end];
+                        self.ppu.borrow_mut().write_oamdma(array);
                         return 514;
                     },
                     // Read APU
