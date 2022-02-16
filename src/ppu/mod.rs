@@ -28,7 +28,7 @@ pub struct Ppu {
     secondary_oam: [u8; 0x40],
     sprite_count: u8,
     sprite_fetcher_count: usize,
-    secondary_oam_pointer: u8,
+    secondary_oam_pointer: usize,
 
     // Cycle management
     col: u16,
@@ -256,13 +256,13 @@ impl Ppu {
             // During those cycles, sprites are actually evaluated
             // Fetch next sprite first byte (y coordinate)
             let sprite_y_coordinate = self.primary_oam[(4 * self.sprite_count) as usize];
-            self.secondary_oam[(self.secondary_oam_pointer * 4) as usize] = sprite_y_coordinate;
+            self.secondary_oam[self.secondary_oam_pointer * 4] = sprite_y_coordinate;
             let sprite_y_coordinate = sprite_y_coordinate as u16;
             if self.line >= sprite_y_coordinate && self.line < sprite_y_coordinate + 7 {
                 // Le sprite traverse la scanline, on le copy dans  le secondary oam
-                self.secondary_oam[(self.secondary_oam_pointer * 4 + 1) as usize] = self.primary_oam[(4 * self.sprite_count + 1) as usize];
-                self.secondary_oam[(self.secondary_oam_pointer * 4 + 2) as usize] = self.primary_oam[(4 * self.sprite_count + 2) as usize];
-                self.secondary_oam[(self.secondary_oam_pointer * 4 + 3) as usize] = self.primary_oam[(4 * self.sprite_count + 3) as usize];
+                self.secondary_oam[self.secondary_oam_pointer * 4 + 1] = self.primary_oam[(4 * self.sprite_count + 1) as usize];
+                self.secondary_oam[self.secondary_oam_pointer * 4 + 2] = self.primary_oam[(4 * self.sprite_count + 2) as usize];
+                self.secondary_oam[self.secondary_oam_pointer * 4 + 3] = self.primary_oam[(4 * self.sprite_count + 3) as usize];
                 self.secondary_oam_pointer += 1;
             }
             self.sprite_count += 1;
@@ -490,7 +490,7 @@ impl Ppu {
     }
 
     /// Write OAM with memory from main vram passed in value
-    pub fn write_oamdma(&mut self, value: &[u8; 0x100]) {
+    pub fn write_oamdma(&mut self, value: [u8]) {
         let max = 0xff - self.oamaddr;
         for i in 0..=max {
             self.primary_oam[(self.oamaddr + i) as usize] = value[i as usize];
