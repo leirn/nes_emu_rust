@@ -36,7 +36,7 @@ fn main() {
     let settings =
         load_file("C:/Users/laure/OneDrive/Documents/GitHub/nes_emu_rust/src/config.yaml");
 
-    if test_name.len() > 0 {
+    if !test_name.is_emtpy() {
         println!("Test ? {}", test_name);
         println!("{:?}", settings["tests"]["nestest"]);
         println!(

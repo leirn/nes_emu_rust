@@ -834,7 +834,7 @@ impl Cpu {
     /// Function call for ASL. Accumulator
     fn fn_0x0a(&mut self) -> (u16, u32) {
         self.carry = (self.accumulator >> 7) != 0;
-        self.accumulator = self.accumulator << 1;
+        self.accumulator <<= 1;
         self.set_flags_nz(self.accumulator);
         (1, 2)
     }
