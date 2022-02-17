@@ -369,7 +369,7 @@ impl Cpu {
 
         // Default is equivalent to JMP ($FFFC)
         if entry_point == None {
-            self.program_counter = entry_point.unwrap_or_else(self.memory.borrow_mut().read_rom_16(0xfffc));
+            self.program_counter = entry_point.unwrap_or_else(|| self.memory.borrow_mut().read_rom_16(0xfffc));
         }
         else {
             self.program_counter = entry_point.unwrap();
