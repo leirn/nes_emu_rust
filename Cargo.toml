@@ -8,7 +8,6 @@ repository = "https://github.com/leirn/nes_emu_rust/"
 readme = "README.md"
 keywords = ["NES", "Nintendo", "Famicom", "emulator"]
 license = "MIT"
-edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
