@@ -155,19 +155,19 @@ impl Apu {
         };
     }
 
-    fn get_status() -> u8 {
+    fn get_status(&self) -> u8 {
         0
     }
 
-    fn set_status(value: u8) {
+    fn set_status(&mut self, value: u8) {
 
     }
 
-    fn get_frame_counter() -> u8 {
+    fn get_frame_counter(&self) -> u8 {
         0
     }
 
-    fn set_frame_counter(value: u8) {
+    fn set_frame_counter(&mut self, value: u8) {
 
     }
 }
@@ -193,7 +193,7 @@ struct Pulse {
 }
 
 impl Pulse {
-    pub fn set_byte_0(value: u8) {
+    pub fn set_byte_0(&mut self, value: u8) {
         self.byte_0 = value;
         self.duty = value >> 6;
         self.envelope_loop_length_counter_halt = (value & 0b100000) != 0;
@@ -201,11 +201,11 @@ impl Pulse {
         self.volume_envelope = value & 0b1111
     }
 
-    pub fn get_byte_0() -> u8 {
+    pub fn get_byte_0(&self) -> u8 {
         self.byte_0
     }
 
-    pub fn set_byte_1(value: u8) {
+    pub fn set_byte_1(&mut self, value: u8) {
         self.byte_1 = value;
         self.sweep_unit_enabled = (value & 0b10000000) != 0;
         self.sweep_unit_period = (value >> 4) & 0b111;
@@ -213,26 +213,26 @@ impl Pulse {
         self.sweep_unit_shift = value & 0b111;
     }
 
-    pub fn get_byte_1() -> u8 {
+    pub fn get_byte_1(&self) -> u8 {
         self.byte_1
     }
 
-    pub fn set_byte_2(value: u8) {
+    pub fn set_byte_2(&mut self, value: u8) {
         self.byte_2 = value;
         self.timer = (self.timer & 0xff00) | value;
     }
 
-    pub fn get_byte_2() -> u8 {
+    pub fn get_byte_2(&self) -> u8 {
         self.byte_2
     }
 
-    pub fn set_byte_3(value: u8) {
+    pub fn set_byte_3(&mut self, value: u8) {
         self.byte_3 = value;
         self.length_counter_load = value >> 3;
         self.timer = (self.timer & 0xff) | ((value & 0b111) << 8);
     }
 
-    pub fn get_byte_3() -> u8 {
+    pub fn get_byte_3(&self) -> u8 {
         self.byte_3
     }
 }
@@ -249,32 +249,32 @@ struct Triangle {
 }
 
 impl Triangle {
-    pub fn set_byte_0(value: u8) {
+    pub fn set_byte_0(&mut self, value: u8) {
         self.byte_0 = value;
         self.lenght_counter_halt_linear_counter_control = (value & 0b10000000) != 0;
         self.linear_counter_load = value & 0x7f;
     }
 
-    pub fn get_byte_0() -> u8 {
+    pub fn get_byte_0(&self) -> u8 {
         self.byte_0
     }
 
-    pub fn set_byte_2(value: u8) {
+    pub fn set_byte_2(&mut self, value: u8) {
         self.byte_2 = value;
         self.timer = (self.timer & 0xff00) | value;
     }
 
-    pub fn get_byte_2() -> u8 {
+    pub fn get_byte_2(&self) -> u8 {
         self.byte_2
     }
 
-    pub fn set_byte_3(value: u8) {
+    pub fn set_byte_3(&mut self, value: u8) {
         self.byte_3 = value;
         self.length_counter_load = value >> 3;
         self.timer = (self.timer & 0xff) | ((value & 0b111) << 8);
     }
 
-    pub fn get_byte_3() -> u8 {
+    pub fn get_byte_3(&self) -> u8 {
         self.byte_3
     }
 }
@@ -293,33 +293,33 @@ struct Noise {
 }
 
 impl Noise {
-    pub fn set_byte_0(value: u8) {
+    pub fn set_byte_0(&mut self, value: u8) {
         self.byte_0 = value;
         self.envelope_loop_length_counter_halt = (value & 0b100000) != 0;
         self.constant_volume = (value & 0b10000) != 0;
         self.volume_envelope = value & 0b1111;
     }
 
-    pub fn get_byte_0() -> u8 {
+    pub fn get_byte_0(&self) -> u8 {
         self.byte_0
     }
 
-    pub fn set_byte_2(value: u8) {
+    pub fn set_byte_2(&mut self, value: u8) {
         self.byte_2 = value;
         self.loop_noise = (value & 0x80) != 0;
         self.noise_period = value & 0xf;
     }
 
-    pub fn get_byte_2() -> u8 {
+    pub fn get_byte_2(&self) -> u8 {
         self.byte_2
     }
 
-    pub fn set_byte_3(value: u8) {
+    pub fn set_byte_3(&mut self, value: u8) {
         self.byte_3 = value;
         self.length_counter_load = value >> 3;
     }
 
-    pub fn get_byte_3() -> u8 {
+    pub fn get_byte_3(&self) -> u8 {
         self.byte_3
     }
 }
@@ -336,38 +336,38 @@ struct Dmc {
 }
 
 impl Dmc {
-    pub fn set_byte_0(value: u8) {
+    pub fn set_byte_0(&mut self, value: u8) {
         self.byte_0 = value;
         self.irq_enabled = (value & 0x80) != 0;
         self.loop_sample = (value & 0x40) != 0;
         self.frequency = value & 0xf;
     }
 
-    pub fn get_byte_0() -> u8 {
+    pub fn get_byte_0(&self) -> u8 {
         self.byte_0
     }
 
-    pub fn set_byte_1(value: u8) {
+    pub fn set_byte_1(&mut self, value: u8) {
         self.load_counter = value & 0x7f;
     }
 
-    pub fn get_byte_1() -> u8 {
+    pub fn get_byte_1(&self) -> u8 {
         self.load_counter
     }
 
-    pub fn set_byte_2(value: u8) {
+    pub fn set_byte_2(&mut self, value: u8) {
         self.sample_address = value;
     }
 
-    pub fn get_byte_2() -> u8 {
+    pub fn get_byte_2(&self) -> u8 {
         self.sample_address
     }
 
-    pub fn set_byte_3(value: u8) {
+    pub fn set_byte_3(&mut self, value: u8) {
         self.sample_length = value;
     }
 
-    pub fn get_byte_3() -> u8 {
+    pub fn get_byte_3(&self) -> u8 {
         self.sample_length
     }
 }
