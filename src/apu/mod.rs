@@ -23,7 +23,7 @@ pub struct Apu {
 impl Apu {
     /// Instantiate APU component
     pub fn new(_interrupt_bus: Rc<RefCell<Interrupt>>, _sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Apu {
-        Apu {
+        let mut apu = Apu {
             sdl_audio: _sdl_context.borrow_mut().audio().unwrap(),
             interrupt_bus: _interrupt_bus,
             pulse_1: Pulse{
@@ -94,6 +94,30 @@ impl Apu {
             enable_pulse_1: false,
             enable_pulse_2: false,
         }
+
+        // Initialise registers
+        apu.pulse_1.set_byte_0(0x30);
+        apu.pulse_1.set_byte_1(0x08);
+        apu.pulse_1.set_byte_2(0x00);
+        apu.pulse_1.set_byte_3(0x00);
+        apu.pulse_2.set_byte_0(0x30);
+        apu.pulse_2.set_byte_1(0x08);
+        apu.pulse_2.set_byte_2(0x00);
+        apu.pulse_2.set_byte_3(0x00);
+        apu.triangle.set_byte_0(0x80);
+        apu.triangle.set_byte_1(0x00);
+        apu.triangle.set_byte_2(0x00);
+        apu.triangle.set_byte_3(0x00);
+        apu.noise.set_byte_0(0x30);
+        apu.noise.set_byte_1(0x00);
+        apu.noise.set_byte_2(0x00);
+        apu.noise.set_byte_3(0x00);
+        apu.dmc.set_byte_0(0x00);
+        apu.dmc.set_byte_1(0x00);
+        apu.dmc.set_byte_2(0x00);
+        apu.dmc.set_byte_3(0x00);
+
+        apu
     }
 
     /// Next APU cycle
