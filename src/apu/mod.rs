@@ -93,7 +93,7 @@ impl Apu {
             enable_triangle: false,
             enable_pulse_1: false,
             enable_pulse_2: false,
-        }
+        };
 
         // Initialise registers
         apu.pulse_1.set_byte_0(0x30);
