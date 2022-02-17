@@ -1,5 +1,10 @@
 //! APU Component
+
+use crate::bus::interrupt::Interrupt;
+
 pub struct Apu {
+    sdl_audio: sdl2::AudioSubsystem;
+    interrupt_bus: Interrupt,
     pulse_1: Pulse,
     pulse_2: Pulse,
     noise: Noise,
@@ -15,8 +20,10 @@ pub struct Apu {
 
 impl Apu {
     /// Instantiate APU component
-    pub fn new() -> Apu {
+    pub fn new(_interrupt_bus: Rc<RefCell<Interrupt>>, _sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Apu {
         Apu {
+            sdl_audio: _sdl_context.borrow_mut().audio().unwrap(),
+            interrupt_bus: _interrupt_bus,
             pulse_1: Pulse{
                 byte_0: 0,
                 byte_1: 0,
