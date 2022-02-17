@@ -105,11 +105,9 @@ impl Apu {
         apu.pulse_2.set_byte_2(0x00);
         apu.pulse_2.set_byte_3(0x00);
         apu.triangle.set_byte_0(0x80);
-        apu.triangle.set_byte_1(0x00);
         apu.triangle.set_byte_2(0x00);
         apu.triangle.set_byte_3(0x00);
         apu.noise.set_byte_0(0x30);
-        apu.noise.set_byte_1(0x00);
         apu.noise.set_byte_2(0x00);
         apu.noise.set_byte_3(0x00);
         apu.dmc.set_byte_0(0x00);
