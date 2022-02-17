@@ -95,57 +95,57 @@ impl Apu {
     /// Read APU registers
     pub fn read_registers(&mut self, address: u16) -> u8 {
         match address {
-            0x4000u16 => self.pulse_1.get_byte_0(),
-            0x4001u16 => self.pulse_1.get_byte_1(),
-            0x4002u16 => self.pulse_1.get_byte_2(),
-            0x4003u16 => self.pulse_1.get_byte_3(),
-            0x4004u16 => self.pulse_2.get_byte_0(),
-            0x4005u16 => self.pulse_2.get_byte_1(),
-            0x4006u16 => self.pulse_2.get_byte_2(),
-            0x4007u16 => self.pulse_2.get_byte_3(),
-            0x4008u16 => self.triangle.get_byte_0(),
-            0x4009u16 => 0, // Unused
-            0x400au16 => self.triangle.get_byte_2(),
-            0x400bu16 => self.triangle.get_byte_3(),
-            0x400cu16 => self.noise.get_byte_0(),
-            0x400du16 => 0, // Unused
-            0x400eu16 => self.noise.get_byte_2(),
-            0x400fu16 => self.noise.get_byte_3(),
-            0x4010u16 => self.dmc.get_byte_0(),
-            0x4011u16 => self.dmc.get_byte_1(),
-            0x4012u16 => self.dmc.get_byte_2(),
-            0x4013u16 => self.dmc.get_byte_3(),
-            0x4015u16 => self.get_status(),
-            0x4017u16 => self.get_frame_counter(),
-            _ => (),
+            0x4000 => self.pulse_1.get_byte_0(),
+            0x4001 => self.pulse_1.get_byte_1(),
+            0x4002 => self.pulse_1.get_byte_2(),
+            0x4003 => self.pulse_1.get_byte_3(),
+            0x4004 => self.pulse_2.get_byte_0(),
+            0x4005 => self.pulse_2.get_byte_1(),
+            0x4006 => self.pulse_2.get_byte_2(),
+            0x4007 => self.pulse_2.get_byte_3(),
+            0x4008 => self.triangle.get_byte_0(),
+            0x4009 => 0, // Unused
+            0x400a => self.triangle.get_byte_2(),
+            0x400b => self.triangle.get_byte_3(),
+            0x400c => self.noise.get_byte_0(),
+            0x400d => 0, // Unused
+            0x400e => self.noise.get_byte_2(),
+            0x400f => self.noise.get_byte_3(),
+            0x4010 => self.dmc.get_byte_0(),
+            0x4011 => self.dmc.get_byte_1(),
+            0x4012 => self.dmc.get_byte_2(),
+            0x4013 => self.dmc.get_byte_3(),
+            0x4015 => self.get_status(),
+            0x4017 => self.get_frame_counter(),
+            _ => 0,
         }
     }
 
     /// Write APU registers
     pub fn write_registers(&mut self, address: u16, value: u8) {
         match address {
-            0x4000u16 => self.pulse_1.set_byte_0(value),
-            0x4001u16 => self.pulse_1.set_byte_1(value),
-            0x4002u16 => self.pulse_1.set_byte_2(value),
-            0x4003u16 => self.pulse_1.set_byte_3(value),
-            0x4004u16 => self.pulse_2.set_byte_0(value),
-            0x4005u16 => self.pulse_2.set_byte_1(value),
-            0x4006u16 => self.pulse_2.set_byte_2(value),
-            0x4007u16 => self.pulse_2.set_byte_3(value),
-            0x4008u16 => self.triangle.set_byte_0(value),
-            0x4009u16 => (), // Unused
-            0x400au16 => self.triangle.set_byte_2(value),
-            0x400bu16 => self.triangle.set_byte_3(value),
-            0x400cu16 => self.noise.set_byte_0(value),
-            0x400du16 => (), // Unused
-            0x400eu16 => self.noise.set_byte_2(value),
-            0x400fu16 => self.noise.set_byte_3(value),
-            0x4010u16 => self.dmc.set_byte_0(value),
-            0x4011u16 => self.dmc.set_byte_1(value),
-            0x4012u16 => self.dmc.set_byte_2(value),
-            0x4013u16 => self.dmc.set_byte_3(value),
-            0x4015u16 => self.set_status(value),
-            0x4017u16 => self.set_frame_counter(value),
+            0x4000 => self.pulse_1.set_byte_0(value),
+            0x4001 => self.pulse_1.set_byte_1(value),
+            0x4002 => self.pulse_1.set_byte_2(value),
+            0x4003 => self.pulse_1.set_byte_3(value),
+            0x4004 => self.pulse_2.set_byte_0(value),
+            0x4005 => self.pulse_2.set_byte_1(value),
+            0x4006 => self.pulse_2.set_byte_2(value),
+            0x4007 => self.pulse_2.set_byte_3(value),
+            0x4008 => self.triangle.set_byte_0(value),
+            0x4009 => (), // Unused
+            0x400a => self.triangle.set_byte_2(value),
+            0x400b => self.triangle.set_byte_3(value),
+            0x400c => self.noise.set_byte_0(value),
+            0x400d => (), // Unused
+            0x400e => self.noise.set_byte_2(value),
+            0x400f => self.noise.set_byte_3(value),
+            0x4010 => self.dmc.set_byte_0(value),
+            0x4011 => self.dmc.set_byte_1(value),
+            0x4012 => self.dmc.set_byte_2(value),
+            0x4013 => self.dmc.set_byte_3(value),
+            0x4015 => self.set_status(value),
+            0x4017 => self.set_frame_counter(value),
             _ => (),
         };
     }
