@@ -3,6 +3,7 @@
 use crate::bus::interrupt::Interrupt;
 use std::cell::RefCell;
 use std::rc::Rc;
+use sdl2::mixer::{InitFlag, AUDIO_U8};
 
 pub struct Apu {
     sdl_audio: sdl2::AudioSubsystem,
@@ -18,6 +19,11 @@ pub struct Apu {
     enable_triangle: bool,
     enable_pulse_1: bool,
     enable_pulse_2: bool,
+
+    // Temporary debug variables
+    phase_inc: f32,
+    phase: f32,
+    volume: f32
 }
 
 impl Apu {
@@ -93,6 +99,11 @@ impl Apu {
             enable_triangle: false,
             enable_pulse_1: false,
             enable_pulse_2: false,
+
+            // Temporary debug variables
+            phase_inc: 440.0 / spec.freq as f32,
+            phase: 0.0,
+            volume: 0.25
         };
 
         // Initialise registers
@@ -118,9 +129,23 @@ impl Apu {
         apu
     }
 
+    pub fn start(&mut self) {
+        let desired_spec = AudioSpecDesired {
+            freq: Some(44100),
+            channels: Some(1),  // mono
+            samples: None       // default sample size
+        };
+
+        let device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
+            self // Use APU as AudioCallback if allowed
+        }).unwrap();
+
+        // Start playing sound
+        device.resume();
+    }
+
     /// Next APU cycle
     pub fn next(&self) {
-
     }
 
     /// Read APU registers
@@ -198,6 +223,19 @@ impl Apu {
     }
 }
 
+impl AudioCallback for Apu {
+    // Temporary approach. Will need to be changed to represent NES APU function
+    type Channel = f32;
+    fn callback(&mut self, out: &mut[f32]) {
+        for x in out.iter_mut() {
+            *x = match self.phase {
+                0.0...0.5 => self.volume,
+                _ => -self.volume
+            };
+            self.phase = (self.phase + self.phase_inc) % 1.0;
+        }
+    }
+}
 
 /// Pulse register
 struct Pulse {

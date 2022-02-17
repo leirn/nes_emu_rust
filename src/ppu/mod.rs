@@ -48,7 +48,6 @@ pub struct Ppu {
 
     // Pixel generator part
     // Start with two empty tiles
-    bg_palette_register: VecDeque<u8>,
     bg_low_byte_table_register: VecDeque<u8>,
     bg_high_byte_table_register: VecDeque<u8>,
     bg_attribute_table_register: VecDeque<u8>,
@@ -98,7 +97,6 @@ impl Ppu {
             palette_vram: [0; 0x20],
 
             // Pixel generator variables
-            bg_palette_register: VecDeque::from([0, 0]),
             bg_low_byte_table_register: VecDeque::from([0, 0]),
             bg_high_byte_table_register: VecDeque::from([0, 0]),
             bg_attribute_table_register: VecDeque::from([0, 0]),
@@ -250,6 +248,7 @@ impl Ppu {
         }
 
         if self.secondary_oam_pointer > 7 {
+            self.set_sprite_overflow();
             return; // Maximum 8 sprites found per frame
         }
         if self.col > 64 && self.col < 256 && self.sprite_count < 64 {
