@@ -1,9 +1,11 @@
 //! APU Component
 
 use crate::bus::interrupt::Interrupt;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct Apu {
-    sdl_audio: sdl2::AudioSubsystem;
+    sdl_audio: sdl2::AudioSubsystem,
     interrupt_bus: Interrupt,
     pulse_1: Pulse,
     pulse_2: Pulse,
