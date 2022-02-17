@@ -1,10 +1,10 @@
 //! APU Component
 pub struct Apu {
-    pulse_1: Pulse;
-    pulse_2: Pulse;
-    noise: Noise;
-    triangle: Triangle;
-    dmc: Dmc;
+    pulse_1: Pulse,
+    pulse_2: Pulse,
+    noise: Noise,
+    triangle: Triangle,
+    dmc: Dmc,
 
     enable_dmc: bool,
     enable_noise: bool,
@@ -25,7 +25,6 @@ impl Apu {
                 duty: 0,
                 enveloppe_loop_length_counter_halt: false,
                 constant_volume: false,
-                envelope: 0,
                 volume_envelope: 0,
                 sweep_unit_enabled: false,
                 sweep_unit_period: 0,
@@ -42,7 +41,6 @@ impl Apu {
                 duty: 0,
                 enveloppe_loop_length_counter_halt: false,
                 constant_volume: false,
-                envelope: 0,
                 volume_envelope: 0,
                 sweep_unit_enabled: false,
                 sweep_unit_period: 0,
@@ -73,9 +71,6 @@ impl Apu {
             },
             dmc: Dmc {
                 byte_0: 0,
-                byte_1: 0,
-                byte_2: 0,
-                byte_3: 0,
                 irq_enabled: false,
                 loop_sample: false,
                 frequency: 0,
@@ -218,7 +213,7 @@ impl Pulse {
 
     pub fn set_byte_2(&mut self, value: u8) {
         self.byte_2 = value;
-        self.timer = (self.timer & 0xff00) | value;
+        self.timer = (self.timer & 0xff00) | (value as u16);
     }
 
     pub fn get_byte_2(&self) -> u8 {
@@ -228,7 +223,7 @@ impl Pulse {
     pub fn set_byte_3(&mut self, value: u8) {
         self.byte_3 = value;
         self.length_counter_load = value >> 3;
-        self.timer = (self.timer & 0xff) | ((value & 0b111) << 8);
+        self.timer = (self.timer & 0xff) | ((value as u16 & 0b111) << 8);
     }
 
     pub fn get_byte_3(&self) -> u8 {
@@ -260,7 +255,7 @@ impl Triangle {
 
     pub fn set_byte_2(&mut self, value: u8) {
         self.byte_2 = value;
-        self.timer = (self.timer & 0xff00) | value;
+        self.timer = (self.timer & 0xff00) | (value as u16);
     }
 
     pub fn get_byte_2(&self) -> u8 {
@@ -270,7 +265,7 @@ impl Triangle {
     pub fn set_byte_3(&mut self, value: u8) {
         self.byte_3 = value;
         self.length_counter_load = value >> 3;
-        self.timer = (self.timer & 0xff) | ((value & 0b111) << 8);
+        self.timer = (self.timer & 0xff) | ((value as u16 & 0b111) << 8);
     }
 
     pub fn get_byte_3(&self) -> u8 {
