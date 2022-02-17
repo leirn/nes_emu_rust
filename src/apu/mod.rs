@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 pub struct Apu {
     sdl_audio: sdl2::AudioSubsystem,
-    interrupt_bus: Interrupt,
+    interrupt_bus: Rc<RefCell<Interrupt>>,
     pulse_1: Pulse,
     pulse_2: Pulse,
     noise: Noise,
