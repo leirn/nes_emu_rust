@@ -4,7 +4,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::fs::File;
 use std::io::BufReader;
-use crate::cpu::opcodes::OPCODES;
 use regex::Regex;
 use std::io::BufRead;
 use sdl2::keyboard::Keycode;
@@ -17,6 +16,7 @@ use crate::bus::memory::Memory;
 use crate::apu::Apu;
 use crate::cpu::Cpu;
 use crate::ppu::Ppu;
+use crate::cpu::opcodes::OPCODES;
 
 pub struct NesEmulator {
     pause: bool,

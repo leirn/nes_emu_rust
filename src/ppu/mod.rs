@@ -29,6 +29,7 @@ pub struct Ppu {
     sprite_count: u8,
     sprite_fetcher_count: usize,
     secondary_oam_pointer: usize,
+    is_first_sprite_0:bool,
 
     // Cycle management
     col: u16,
@@ -79,6 +80,7 @@ impl Ppu {
             sprite_count: 0,
             sprite_fetcher_count: 0,
             secondary_oam_pointer: 0,
+            is_first_sprite_0: false,
 
             // Cycle management
             col: 0,
@@ -128,7 +130,7 @@ impl Ppu {
         match self.line {
             0..=239u16 => {
                 if self.col > 0 && self.col < 257 {
-                    if self.line < 240 && self.is_bg_rendering_enabled() {
+                    if self.is_bg_rendering_enabled() {
                         let pixel_color = self.compute_next_pixel();
                         self.screen.update_pixel(pixel_color, (self.col - 1) as u8, self.line as u8);
                     }
@@ -154,6 +156,7 @@ impl Ppu {
                 if self.col == 1 {
                     self.clear_vblank();
                     self.clear_sprite0_hit();
+                    self.is_first_sprite_0 = false;
                     self.clear_sprite_overflow();
                 }
             },
@@ -258,6 +261,10 @@ impl Ppu {
             self.secondary_oam[self.secondary_oam_pointer * 4] = sprite_y_coordinate;
             let sprite_y_coordinate = sprite_y_coordinate as u16;
             if self.line >= sprite_y_coordinate && self.line < sprite_y_coordinate + 7 {
+                // If first sprite in primary OAM, then sprite 0 to eventually raise in pixel generator
+                if self.sprite_count == 0 {
+                    self.is_first_sprite_0 = true;
+                }
                 // Le sprite traverse la scanline, on le copy dans  le secondary oam
                 self.secondary_oam[self.secondary_oam_pointer * 4 + 1] = self.primary_oam[(4 * self.sprite_count + 1) as usize];
                 self.secondary_oam[self.secondary_oam_pointer * 4 + 2] = self.primary_oam[(4 * self.sprite_count + 2) as usize];
@@ -610,9 +617,9 @@ impl Ppu {
     // Return a color_index which is a palette index
     pub fn compute_next_pixel(&mut self) -> u8 {
         let (bg_color_code, bg_color_palette) = self.compute_bg_pixel();
-        let (sprite_color_code, sprite_color_palette, priority) = self.compute_sprite_pixel();
+        let (sprite_color_code, sprite_color_palette, priority, sprite_id) = self.compute_sprite_pixel();
 
-        self.multiplexer_decision(bg_color_code, bg_color_palette, sprite_color_code, sprite_color_palette, priority)
+        self.multiplexer_decision(bg_color_code, bg_color_palette, sprite_color_code, sprite_color_palette, priority, sprite_id == 0)
     }
 
     /// Compute the elements for the bg pixel
@@ -641,7 +648,7 @@ impl Ppu {
     }
 
     /// Compute the elements for the sprite pixel if there is one at that position
-    fn compute_sprite_pixel(&mut self) -> (u8, u8, u8) {
+    fn compute_sprite_pixel(&mut self) -> (u8, u8, u8, u8) {
         for i in 0..(self.sprite_x_coordinate_table_register.len()) {
             let sprite_x = self.sprite_x_coordinate_table_register[i] as u16;
             // TODO : self.col must only wrok where no scrolling, use register_v instead ?
@@ -655,14 +662,14 @@ impl Ppu {
                 let priority = (attribute >> 5) & 0x1;
                 let sprite_color_palette = attribute & 0b11;
 
-                return (sprite_color_code, sprite_color_palette, priority);
+                return (sprite_color_code, sprite_color_palette, priority, sprite_number);
             }
         }
         (0, 0, 1) // Means no sprite, transparente color
     }
 
     /// Implement PPU Priority Multiplexer decision table
-    fn multiplexer_decision(&mut self, bg_color_code: u8, bg_color_palette: u8, sprite_color_code: u8, sprite_color_palette: u8, priority: u8) -> u8 {
+    fn multiplexer_decision(&mut self, bg_color_code: u8, bg_color_palette: u8, sprite_color_code: u8, sprite_color_palette: u8, priority: u8, is_sprite_0: bool) -> u8 {
         let bg_palette_address = bg_color_palette << 2;
         let sprite_palette_address = sprite_color_palette << 2;
 
@@ -675,6 +682,12 @@ impl Ppu {
         if sprite_color_code == 0 {
             return self.palette_vram[(bg_palette_address + bg_color_code) as usize]; // bg color
         }
+        // BG color > 0 and Sprite color > 0 --> Set sprite_0
+        // TODO : check that we are on sprite 0 : is it the right method ?
+        if is_sprite_0 and self.is_first_sprite_0 {
+            self.set_sprite0_hit();
+        }
+
         if priority == 0 {
             return self.palette_vram[(0x10 + sprite_palette_address + sprite_color_code) as usize];
         }
