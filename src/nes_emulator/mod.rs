@@ -7,20 +7,30 @@ use std::io::BufReader;
 use crate::cpu::opcodes::OPCODES;
 use regex::Regex;
 use std::io::BufRead;
+use sdl2::keyboard::Keycode;
+use sdl2::event::Event;
+
+use crate::bus::interrupt::Interrupt;
+use crate::bus::controller::Controller;
+use crate::cartridge::Cartridge;
+use crate::bus::memory::Memory;
+use crate::apu::Apu;
+use crate::cpu::Cpu;
+use crate::ppu::Ppu;
 
 pub struct NesEmulator {
     pause: bool,
     is_test_mode: bool,
     pub sdl_context: Rc<RefCell<sdl2::Sdl>>,
     clock: clock::Clock,
-    cartridge: Rc<RefCell<crate::cartridge::Cartridge>>,
-    memory: Rc<RefCell<crate::bus::memory::Memory>>,
-    apu: Rc<RefCell<crate::apu::Apu>>,
-    ppu: Rc<RefCell<crate::ppu::Ppu>>,
-    cpu: Rc<RefCell<crate::cpu::Cpu>>,
-    interrupt_bus: Rc<RefCell<crate::bus::interrupt::Interrupt>>,
-    controller_1: Rc<RefCell<crate::bus::controller::Controller>>,
-    controller_2: Rc<RefCell<crate::bus::controller::Controller>>,
+    cartridge: Rc<RefCell<Cartridge>>,
+    memory: Rc<RefCell<Memory>>,
+    apu: Rc<RefCell<Apu>>,
+    ppu: Rc<RefCell<Ppu>>,
+    cpu: Rc<RefCell<Cpu>>,
+    interrupt_bus: Rc<RefCell<Interrupt>>,
+    controller_1: Rc<RefCell<Controller>>,
+    controller_2: Rc<RefCell<Controller>>,
     lines: Vec<String>,
     line_index: usize,
     parity: bool,
@@ -33,14 +43,14 @@ impl NesEmulator {
         println!("SDL Context initialized");
 
 
-        let _interrupt_bus = Rc::new(RefCell::new(crate::bus::interrupt::Interrupt::new()));
-        let _controller_1 = Rc::new(RefCell::new(crate::bus::controller::Controller::new()));
-        let _controller_2 = Rc::new(RefCell::new(crate::bus::controller::Controller::new()));
-        let _cartridge = Rc::new(RefCell::new(crate::cartridge::Cartridge::new(rom_file)));
-        let _apu = Rc::new(RefCell::new(crate::apu::Apu::new(Rc::clone(&_interrupt_bus), _sdl_context.clone())));
-        let _ppu = Rc::new(RefCell::new(crate::ppu::Ppu::new(Rc::clone(&_cartridge), _sdl_context.clone(), Rc::clone(&_interrupt_bus))));
-        let _memory = Rc::new(RefCell::new(crate::bus::memory::Memory::new(Rc::clone(&_cartridge), Rc::clone(&_ppu), Rc::clone(&_apu), Rc::clone(&_controller_1), Rc::clone(&_controller_2))));
-        let _cpu = Rc::new(RefCell::new(crate::cpu::Cpu::new(Rc::clone(&_memory))));
+        let _interrupt_bus = Rc::new(RefCell::new(Interrupt::new()));
+        let _controller_1 = Rc::new(RefCell::new(Controller::new()));
+        let _controller_2 = Rc::new(RefCell::new(Controller::new()));
+        let _cartridge = Rc::new(RefCell::new(Cartridge::new(rom_file)));
+        let _apu = Rc::new(RefCell::new(Apu::new(Rc::clone(&_interrupt_bus), _sdl_context.clone())));
+        let _ppu = Rc::new(RefCell::new(Ppu::new(Rc::clone(&_cartridge), _sdl_context.clone(), Rc::clone(&_interrupt_bus))));
+        let _memory = Rc::new(RefCell::new(Memory::new(Rc::clone(&_cartridge), Rc::clone(&_ppu), Rc::clone(&_apu), Rc::clone(&_controller_1), Rc::clone(&_controller_2))));
+        let _cpu = Rc::new(RefCell::new(Cpu::new(Rc::clone(&_memory))));
 
 
         NesEmulator{
@@ -105,62 +115,61 @@ impl NesEmulator {
 
             let mut event_pump = self.sdl_context.borrow_mut().event_pump().unwrap();
             for event in event_pump.poll_iter() {
-                use sdl2::event::Event;
                 match event {
                     Event::Quit {..} |
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::Q), ..
+                        keycode: Some(Keycode::Q), ..
                     } => { continuer = false},
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::P), ..
+                        keycode: Some(Keycode::P), ..
                     } => { self.toggle_pause()},
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::Up), ..
+                        keycode: Some(Keycode::Up), ..
                     } => { self.controller_1.borrow_mut().set_up()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::Up), ..
+                        keycode: Some(Keycode::Up), ..
                     } => { self.controller_1.borrow_mut().clear_up()},
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::Down), ..
+                        keycode: Some(Keycode::Down), ..
                     } => { self.controller_1.borrow_mut().set_down()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::Down), ..
+                        keycode: Some(Keycode::Down), ..
                     } => { self.controller_1.borrow_mut().clear_down()},
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::Left), ..
+                        keycode: Some(Keycode::Left), ..
                     } => { self.controller_1.borrow_mut().set_left()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::Left), ..
+                        keycode: Some(Keycode::Left), ..
                     } => { self.controller_1.borrow_mut().clear_left()},
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::Right), ..
+                        keycode: Some(Keycode::Right), ..
                     } => { self.controller_1.borrow_mut().set_right()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::Right), ..
+                        keycode: Some(Keycode::Right), ..
                     } => { self.controller_1.borrow_mut().clear_right()},
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::Escape), ..
+                        keycode: Some(Keycode::Escape), ..
                     } => { self.controller_1.borrow_mut().set_select()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::Escape), ..
+                        keycode: Some(Keycode::Escape), ..
                     } => { self.controller_1.borrow_mut().clear_select()},
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::Return), ..
+                        keycode: Some(Keycode::Return), ..
                     } => { self.controller_1.borrow_mut().set_start()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::Return), ..
+                        keycode: Some(Keycode::Return), ..
                     } => { self.controller_1.borrow_mut().clear_start()},
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::Space), ..
+                        keycode: Some(Keycode::Space), ..
                     } => { self.controller_1.borrow_mut().set_a()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::Space), ..
+                        keycode: Some(Keycode::Space), ..
                     } => { self.controller_1.borrow_mut().clear_a()},
                     Event::KeyDown {
-                        keycode: Some(sdl2::keyboard::Keycode::LCtrl), ..
+                        keycode: Some(Keycode::LCtrl), ..
                     } => { self.controller_1.borrow_mut().set_b()},
                     Event::KeyUp {
-                        keycode: Some(sdl2::keyboard::Keycode::LCtrl), ..
+                        keycode: Some(Keycode::LCtrl), ..
                     } => { self.controller_1.borrow_mut().clear_b()},
                     _ => ()
                 }
@@ -187,8 +196,6 @@ impl NesEmulator {
     fn check_test(&mut self, cpu_status: crate::cpu::Status, ppu_status: crate::ppu::Status) {
         let current_line = self.lines[self.line_index].clone();
         self.line_index += 1;
-
-        //let current_line = "C000  4C F5 C5  JMP $C5F5                       A:00 X:00 Y:00 P:24 SP:FD PPU:  0, 21 CYC:7";
 
         let opcode = self.memory.borrow_mut().read_rom(cpu_status.program_counter);
         let mut opcode_arg_1 = "  ".to_string();
