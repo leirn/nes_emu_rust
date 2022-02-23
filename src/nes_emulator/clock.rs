@@ -24,7 +24,7 @@ impl Clock {
     /// Tick at each frame and wait to reach the target frame rate
     pub fn tick(&mut self) {
         let now = SystemTime::now();
-        sleep(self.target_frame_duration.saturating_sub((now.duration_since(&self.frame_history.back()))));
+        sleep(self.target_frame_duration.saturating_sub(now.duration_since(&self.frame_history.back())));
         self.frame_history.push_back(now);
         if self.frame_history.len() > 11 {
             self.frame_history.pop_front();
