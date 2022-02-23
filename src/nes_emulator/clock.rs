@@ -9,29 +9,25 @@ use std::thread::sleep;
 pub struct Clock {
     target_frame_duration: Duration,
     frame_history:VecDeque<Duration>,
-    start: SystemTime,
 }
 
 impl Clock {
     /// Instantiate new clock
     pub fn new(_target_framerate: u32) -> Clock{
-        let frame_duration:u64 = (1_000_000_000f64 / _target_framerate as f64) as u64;
-        let _target_frame_duration = Duration::from_nanos(frame_duration);
+        let _target_frame_duration:Duration = Duration::from_nanos(1_000_000_000f64 / _target_framerate as f64);
         Clock{
             target_frame_duration: _target_frame_duration,
-            frame_history: VecDeque::new(),
-            start: SystemTime::now(),
+            frame_history: VecDeque::from([SystemTime::now()]),
         }
     }
 
     /// Tick at each frame and wait to reach the target frame rate
     pub fn tick(&mut self) {
-        let since_start = SystemTime::now().duration_since(self.start).unwrap();
-        self.frame_history.push_back(since_start);
+        let now = SystemTime::now();
+        sleep(self.target_frame_duration.saturating_sub(now.duration_since(&self.frame_history.back())));
+        self.frame_history.push_back(now);
         if self.frame_history.len() > 11 {
             self.frame_history.pop_front();
-            let frame_real_duration = since_start - *self.frame_history.back().unwrap();
-            sleep(self.target_frame_duration - frame_real_duration);
         }
     }
 
