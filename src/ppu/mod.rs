@@ -662,10 +662,10 @@ impl Ppu {
                 let priority = (attribute >> 5) & 0x1;
                 let sprite_color_palette = attribute & 0b11;
 
-                return (sprite_color_code, sprite_color_palette, priority, sprite_number);
+                return (sprite_color_code, sprite_color_palette, priority, i as u8);
             }
         }
-        (0, 0, 1) // Means no sprite, transparente color
+        (0, 0, 1, 10) // Means no sprite, transparente color
     }
 
     /// Implement PPU Priority Multiplexer decision table
@@ -684,7 +684,7 @@ impl Ppu {
         }
         // BG color > 0 and Sprite color > 0 --> Set sprite_0
         // TODO : check that we are on sprite 0 : is it the right method ?
-        if is_sprite_0 and self.is_first_sprite_0 {
+        if is_sprite_0 && self.is_first_sprite_0 {
             self.set_sprite0_hit();
         }
 

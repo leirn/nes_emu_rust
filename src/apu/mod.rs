@@ -3,11 +3,12 @@
 use crate::bus::interrupt::Interrupt;
 use std::cell::RefCell;
 use std::rc::Rc;
-use sdl2::mixer::{InitFlag, AUDIO_U8};
+use sdl2::audio::{AudioSpecDesired, AudioCallback};
 
 pub struct Apu {
     sdl_audio: sdl2::AudioSubsystem,
     interrupt_bus: Rc<RefCell<Interrupt>>,
+    mixer: Mixer,
     pulse_1: Pulse,
     pulse_2: Pulse,
     noise: Noise,
@@ -19,17 +20,17 @@ pub struct Apu {
     enable_triangle: bool,
     enable_pulse_1: bool,
     enable_pulse_2: bool,
-
-    // Temporary debug variables
-    phase_inc: f32,
-    phase: f32,
-    volume: f32
 }
 
 impl Apu {
     /// Instantiate APU component
     pub fn new(_interrupt_bus: Rc<RefCell<Interrupt>>, _sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Apu {
         let mut apu = Apu {
+            mixer: Mixer {
+                phase_inc: 440.0 / 44100 as f32,
+                phase: 0.0,
+                volume: 0.25
+            },
             sdl_audio: _sdl_context.borrow_mut().audio().unwrap(),
             interrupt_bus: _interrupt_bus,
             pulse_1: Pulse{
@@ -99,11 +100,6 @@ impl Apu {
             enable_triangle: false,
             enable_pulse_1: false,
             enable_pulse_2: false,
-
-            // Temporary debug variables
-            phase_inc: 440.0 / spec.freq as f32,
-            phase: 0.0,
-            volume: 0.25
         };
 
         // Initialise registers
@@ -135,13 +131,14 @@ impl Apu {
             channels: Some(1),  // mono
             samples: None       // default sample size
         };
-
-        let device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
-            self // Use APU as AudioCallback if allowed
+        /*
+        let device = self.sdl_audio.open_playback(None, &desired_spec, |spec| {
+            self.mixer
         }).unwrap();
 
         // Start playing sound
         device.resume();
+        */
     }
 
     /// Next APU cycle
@@ -223,13 +220,19 @@ impl Apu {
     }
 }
 
-impl AudioCallback for Apu {
+struct Mixer {
+    phase: f32,
+    volume: f32,
+    phase_inc: f32,
+}
+
+impl AudioCallback for Mixer {
     // Temporary approach. Will need to be changed to represent NES APU function
     type Channel = f32;
     fn callback(&mut self, out: &mut[f32]) {
         for x in out.iter_mut() {
             *x = match self.phase {
-                0.0...0.5 => self.volume,
+                0.0..=0.5 => self.volume,
                 _ => -self.volume
             };
             self.phase = (self.phase + self.phase_inc) % 1.0;
