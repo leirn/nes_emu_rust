@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn clock_tick() {
-        //! This test checks if a tick duration last for the right duration with a 5% tolerance
+        //! This test checks if a tick duration last for the right duration with a 10% tolerance
         const TARGET_FRAMERATE: u32 = 6u32;
         let mut clock  = Clock::new(TARGET_FRAMERATE);
         const TOLERANCE_MARGIN: f64 = 0.1f64;
@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn clock_fps() {
-        //! This test checks if the clock fps measurement give the right duration with 2 fps margin
+        //! This test checks if the clock fps measurement give the right duration with 6 fps margin
         const TARGET_FRAMERATE: u32 = 60u32;
         const TARGET_FRAMERATE_MARGIN: u32 = 6u32;
         const UPPER: f64 = (TARGET_FRAMERATE + TARGET_FRAMERATE_MARGIN) as f64;
