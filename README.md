@@ -1,3 +1,5 @@
+[![Clippy check](https://github.com/leirn/nes_emu_rust/actions/workflows/clippy.yml/badge.svg)](https://github.com/leirn/nes_emu_rust/actions/workflows/clippy.yml)
+
 # nes_emu_rust
 NES Emulator in Rest
 
