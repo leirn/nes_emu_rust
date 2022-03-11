@@ -55,10 +55,10 @@ mod tests {
         let mut clock  = Clock::new(TARGET_FRAMERATE);
         const TOLERANCE_MARGIN: f64 = 0.1f64;
         const FRAME_DURATION_NANOS: f64 = 1_000_000_000f64 / (TARGET_FRAMERATE as f64);
-        let tolerance = std::time::Duration::from_nanos((FRAME_DURATION_NANOS * TOLERANCE_MARGIN) as u64); // 5% tolerance compare to 1/60th seconds
-        let expected_duration = std::time::Duration::from_nanos(FRAME_DURATION_NANOS as u64);
-        let upper = expected_duration + tolerance;
-        let lower = expected_duration - tolerance;
+        let tolerance: u64 = std::time::Duration::from_nanos((FRAME_DURATION_NANOS * TOLERANCE_MARGIN) as u64); // 5% tolerance compare to 1/60th seconds
+        let expected_duration: u64 = std::time::Duration::from_nanos(FRAME_DURATION_NANOS as u64);
+        let upper: u64 = expected_duration + tolerance;
+        let lower: u64 = expected_duration - tolerance;
         let now = std::time::SystemTime::now();
         clock.tick();
         let elapsed = now.elapsed().unwrap();
