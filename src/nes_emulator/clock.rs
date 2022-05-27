@@ -5,6 +5,9 @@ use std::collections::VecDeque;
 use std::time::{Duration, SystemTime};
 use std::thread::sleep;
 
+/// FPS based on last 10 frame intervals average
+const CLOCK_HISTORY_SIZE: usize = 11;
+
 /// Internal clock component, used to cadence the whole execution
 pub struct Clock {
     target_frame_duration: Duration,
@@ -26,14 +29,14 @@ impl Clock {
         let now = SystemTime::now();
         sleep(self.target_frame_duration.saturating_sub(now.duration_since(*self.frame_history.back().unwrap()).unwrap()));
         self.frame_history.push_back(now);
-        if self.frame_history.len() > 11 {
+        if self.frame_history.len() > CLOCK_HISTORY_SIZE {
             self.frame_history.pop_front();
         }
     }
 
     /// Get current fps
     pub fn get_fps(&self) -> f64 {
-        if self.frame_history.len() < 11 {
+        if self.frame_history.len() < CLOCK_HISTORY_SIZE {
             return 0f64;
         }
         let front = *self.frame_history.front().unwrap();
@@ -55,10 +58,10 @@ mod tests {
         let mut clock  = Clock::new(TARGET_FRAMERATE);
         const TOLERANCE_MARGIN: f64 = 0.1f64;
         const FRAME_DURATION_NANOS: f64 = 1_000_000_000f64 / (TARGET_FRAMERATE as f64);
-        let tolerance: u64 = std::time::Duration::from_nanos((FRAME_DURATION_NANOS * TOLERANCE_MARGIN) as u64); // 5% tolerance compare to 1/60th seconds
-        let expected_duration: u64 = std::time::Duration::from_nanos(FRAME_DURATION_NANOS as u64);
-        let upper: u64 = expected_duration + tolerance;
-        let lower: u64 = expected_duration - tolerance;
+        let tolerance = std::time::Duration::from_nanos((FRAME_DURATION_NANOS * TOLERANCE_MARGIN) as u64); // 5% tolerance compare to 1/60th seconds
+        let expected_duration = std::time::Duration::from_nanos(FRAME_DURATION_NANOS as u64);
+        let upper = expected_duration.checked_add(tolerance).unwrap();
+        let lower = expected_duration.checked_sub(tolerance).unwrap();
         let now = std::time::SystemTime::now();
         clock.tick();
         let elapsed = now.elapsed().unwrap();
