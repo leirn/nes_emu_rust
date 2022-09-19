@@ -137,9 +137,9 @@ impl Ppu {
                     if self.is_bg_rendering_enabled() {
                         let pixel_color = self.compute_next_pixel();
                         self.screen.update_pixel(
-                            pixel_color,
-                            (self.col - 1) as u8,
                             self.line as u8,
+                            (self.col - 1) as u8,
+                            pixel_color,
                         );
                     }
                 }
