@@ -6,9 +6,9 @@ use argparse::{ArgumentParser, Store, StoreTrue};
 
 use yaml_rust::YamlLoader;
 mod apu;
+mod bus;
 mod cartridge;
 mod cpu;
-mod bus;
 mod nes_emulator;
 mod ppu;
 
@@ -57,18 +57,14 @@ fn main() {
                 .unwrap(),
         );
         let entry_point = settings["tests"][test_name.as_str()]["entry_point"]
-        .as_i64()
-        .unwrap();
+            .as_i64()
+            .unwrap();
         println!("Rom test file : {}", rom_file.to_str().unwrap());
         println!("Log test file : {}", log_file.to_str().unwrap());
         println!("Entry point should be : {:x}", entry_point);
-        let mut emulator = nes_emulator::NesEmulator::new(
-            rom_file.to_str().unwrap().to_string(),
-        );
+        let mut emulator = nes_emulator::NesEmulator::new(rom_file.to_str().unwrap().to_string());
         emulator.set_test_mode(log_file.to_str().unwrap());
-        emulator.start(Some(
-            entry_point as u16,
-        ),);
+        emulator.start(Some(entry_point as u16));
     }
 
     let mut emulator = nes_emulator::NesEmulator::new(rom_file);
