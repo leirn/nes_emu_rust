@@ -410,6 +410,7 @@ impl Cpu {
     pub fn get_interrupt_flag(&self) -> bool {
         self.interrupt
     }
+
     /// Raises an NMI interruption
     pub fn nmi(&mut self) {
         self.general_interrupt(0xfffa);
