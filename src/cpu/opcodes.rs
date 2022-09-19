@@ -1,6 +1,6 @@
 //! Catalog of implemented opcodes. Mainly for test and debugging purpose
 
-use phf::{Map, phf_map};
+use phf::{phf_map, Map};
 
 #[derive(Clone)]
 pub struct Opcode {
