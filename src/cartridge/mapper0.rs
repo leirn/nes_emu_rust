@@ -1,9 +1,7 @@
 use super::mapper::Mapper;
 use crate::cartridge::Cartridge;
 
-pub struct Mapper0 {
-
-}
+pub struct Mapper0 {}
 
 unsafe impl Send for Mapper0 {}
 /*

@@ -18,17 +18,11 @@ pub trait Mapper {
     }
 
     /// Write cartridge RAM
-    fn write_ram(&mut self, address: u16, value: u8) {
-        
-    }
+    fn write_ram(&mut self, address: u16, value: u8) {}
 
     /// Write cartridge PRG ROM
-    fn write_prg_rom(&mut self, address: u16, value: u8) {
-        
-    }
+    fn write_prg_rom(&mut self, address: u16, value: u8) {}
 
     /// Write cartridge CHR ROM
-    fn write_chr_rom(&mut self, address: u16, value: u8) {
-        
-    }
+    fn write_chr_rom(&mut self, address: u16, value: u8) {}
 }

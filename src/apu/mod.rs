@@ -1,9 +1,9 @@
 //! APU Component
 
 use crate::bus::interrupt::Interrupt;
+use sdl2::audio::{AudioCallback, AudioSpecDesired};
 use std::cell::RefCell;
 use std::rc::Rc;
-use sdl2::audio::{AudioSpecDesired, AudioCallback};
 
 pub struct Apu {
     sdl_audio: sdl2::AudioSubsystem,
@@ -24,16 +24,19 @@ pub struct Apu {
 
 impl Apu {
     /// Instantiate APU component
-    pub fn new(_interrupt_bus: Rc<RefCell<Interrupt>>, _sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Apu {
+    pub fn new(
+        _interrupt_bus: Rc<RefCell<Interrupt>>,
+        _sdl_context: Rc<RefCell<sdl2::Sdl>>,
+    ) -> Apu {
         let mut apu = Apu {
             mixer: Mixer {
                 phase_inc: 440.0 / 44100 as f32,
                 phase: 0.0,
-                volume: 0.25
+                volume: 0.25,
             },
             sdl_audio: _sdl_context.borrow_mut().audio().unwrap(),
             interrupt_bus: _interrupt_bus,
-            pulse_1: Pulse{
+            pulse_1: Pulse {
                 byte_0: 0,
                 byte_1: 0,
                 byte_2: 0,
@@ -49,7 +52,7 @@ impl Apu {
                 timer: 0,
                 length_counter_load: 0,
             },
-            pulse_2: Pulse{
+            pulse_2: Pulse {
                 byte_0: 0,
                 byte_1: 0,
                 byte_2: 0,
@@ -128,8 +131,8 @@ impl Apu {
     pub fn start(&mut self) {
         let desired_spec = AudioSpecDesired {
             freq: Some(44100),
-            channels: Some(1),  // mono
-            samples: None       // default sample size
+            channels: Some(1), // mono
+            samples: None,     // default sample size
         };
         /*
         let device = self.sdl_audio.open_playback(None, &desired_spec, |spec| {
@@ -142,8 +145,7 @@ impl Apu {
     }
 
     /// Next APU cycle
-    pub fn next(&self) {
-    }
+    pub fn next(&self) {}
 
     /// Read APU registers
     pub fn read_registers(&mut self, address: u16) -> u8 {
@@ -207,17 +209,13 @@ impl Apu {
         0
     }
 
-    fn set_status(&mut self, value: u8) {
-
-    }
+    fn set_status(&mut self, value: u8) {}
 
     fn get_frame_counter(&self) -> u8 {
         0
     }
 
-    fn set_frame_counter(&mut self, value: u8) {
-
-    }
+    fn set_frame_counter(&mut self, value: u8) {}
 }
 
 struct Mixer {
@@ -229,11 +227,11 @@ struct Mixer {
 impl AudioCallback for Mixer {
     // Temporary approach. Will need to be changed to represent NES APU function
     type Channel = f32;
-    fn callback(&mut self, out: &mut[f32]) {
+    fn callback(&mut self, out: &mut [f32]) {
         for x in out.iter_mut() {
             *x = match self.phase {
                 0.0..=0.5 => self.volume,
-                _ => -self.volume
+                _ => -self.volume,
             };
             self.phase = (self.phase + self.phase_inc) % 1.0;
         }

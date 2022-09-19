@@ -137,7 +137,7 @@ impl Cartridge {
             .read_to_end(&mut tmp)
             .expect("File too short, check your file for error");
         self.f6 = tmp[0];
-        self.is_trainer = ((self.f6 >> 3) & 1 ) != 0;
+        self.is_trainer = ((self.f6 >> 3) & 1) != 0;
         let mut tmp: Vec<u8> = vec![];
         buf_reader
             .by_ref()
@@ -145,7 +145,7 @@ impl Cartridge {
             .read_to_end(&mut tmp)
             .expect("File too short, check your file for error");
         self.f7 = tmp[0];
-        self.is_playchoice = ((self.f7 >> 2) & 1 ) != 0;
+        self.is_playchoice = ((self.f7 >> 2) & 1) != 0;
         let mut tmp: Vec<u8> = vec![];
         buf_reader
             .by_ref()

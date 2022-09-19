@@ -1,22 +1,22 @@
 //! Emulator main engine
 mod clock;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::fs::File;
-use std::io::BufReader;
 use regex::Regex;
-use std::io::BufRead;
-use sdl2::keyboard::Keycode;
 use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use std::cell::RefCell;
+use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::rc::Rc;
 
-use crate::bus::interrupt::Interrupt;
-use crate::bus::controller::Controller;
-use crate::cartridge::Cartridge;
-use crate::bus::memory::Memory;
 use crate::apu::Apu;
+use crate::bus::controller::Controller;
+use crate::bus::interrupt::Interrupt;
+use crate::bus::memory::Memory;
+use crate::cartridge::Cartridge;
+use crate::cpu::opcodes::OPCODES;
 use crate::cpu::Cpu;
 use crate::ppu::Ppu;
-use crate::cpu::opcodes::OPCODES;
 
 pub struct NesEmulator {
     pause: bool,
@@ -42,18 +42,29 @@ impl NesEmulator {
         let _sdl_context = Rc::new(RefCell::new(sdl2::init().unwrap()));
         println!("SDL Context initialized");
 
-
         let _interrupt_bus = Rc::new(RefCell::new(Interrupt::new()));
         let _controller_1 = Rc::new(RefCell::new(Controller::new()));
         let _controller_2 = Rc::new(RefCell::new(Controller::new()));
         let _cartridge = Rc::new(RefCell::new(Cartridge::new(rom_file)));
-        let _apu = Rc::new(RefCell::new(Apu::new(Rc::clone(&_interrupt_bus), _sdl_context.clone())));
-        let _ppu = Rc::new(RefCell::new(Ppu::new(Rc::clone(&_cartridge), _sdl_context.clone(), Rc::clone(&_interrupt_bus))));
-        let _memory = Rc::new(RefCell::new(Memory::new(Rc::clone(&_cartridge), Rc::clone(&_ppu), Rc::clone(&_apu), Rc::clone(&_controller_1), Rc::clone(&_controller_2))));
+        let _apu = Rc::new(RefCell::new(Apu::new(
+            Rc::clone(&_interrupt_bus),
+            _sdl_context.clone(),
+        )));
+        let _ppu = Rc::new(RefCell::new(Ppu::new(
+            Rc::clone(&_cartridge),
+            _sdl_context.clone(),
+            Rc::clone(&_interrupt_bus),
+        )));
+        let _memory = Rc::new(RefCell::new(Memory::new(
+            Rc::clone(&_cartridge),
+            Rc::clone(&_ppu),
+            Rc::clone(&_apu),
+            Rc::clone(&_controller_1),
+            Rc::clone(&_controller_2),
+        )));
         let _cpu = Rc::new(RefCell::new(Cpu::new(Rc::clone(&_memory))));
 
-
-        NesEmulator{
+        NesEmulator {
             pause: false,
             is_test_mode: false,
             sdl_context: _sdl_context,
@@ -80,14 +91,16 @@ impl NesEmulator {
         self.ppu.borrow_mut().next();
         self.ppu.borrow_mut().next();
 
-        let mut continuer:bool = true;
+        let mut continuer: bool = true;
 
         while continuer {
             if !self.pause {
                 if self.interrupt_bus.borrow_mut().check_and_clear_nmi() {
                     self.cpu.borrow_mut().nmi();
                 }
-                if self.interrupt_bus.borrow_mut().check_and_clear_irq() && self.cpu.borrow_mut().get_interrupt_flag() {
+                if self.interrupt_bus.borrow_mut().check_and_clear_irq()
+                    && self.cpu.borrow_mut().get_interrupt_flag()
+                {
                     self.cpu.borrow_mut().irq();
                 }
                 if self.parity {
@@ -107,7 +120,11 @@ impl NesEmulator {
                     self.check_test(cpu_status, ppu_status);
                 }
 
-                if self.interrupt_bus.borrow_mut().check_and_clear_frame_updated() {
+                if self
+                    .interrupt_bus
+                    .borrow_mut()
+                    .check_and_clear_frame_updated()
+                {
                     self.clock.tick();
                     println!("FPS : {}", self.clock.get_fps());
                 }
@@ -116,62 +133,80 @@ impl NesEmulator {
             let mut event_pump = self.sdl_context.borrow_mut().event_pump().unwrap();
             for event in event_pump.poll_iter() {
                 match event {
-                    Event::Quit {..} |
+                    Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Some(Keycode::Q),
+                        ..
+                    } => continuer = false,
                     Event::KeyDown {
-                        keycode: Some(Keycode::Q), ..
-                    } => { continuer = false},
+                        keycode: Some(Keycode::P),
+                        ..
+                    } => self.toggle_pause(),
                     Event::KeyDown {
-                        keycode: Some(Keycode::P), ..
-                    } => { self.toggle_pause()},
-                    Event::KeyDown {
-                        keycode: Some(Keycode::Up), ..
-                    } => { self.controller_1.borrow_mut().set_up()},
+                        keycode: Some(Keycode::Up),
+                        ..
+                    } => self.controller_1.borrow_mut().set_up(),
                     Event::KeyUp {
-                        keycode: Some(Keycode::Up), ..
-                    } => { self.controller_1.borrow_mut().clear_up()},
+                        keycode: Some(Keycode::Up),
+                        ..
+                    } => self.controller_1.borrow_mut().clear_up(),
                     Event::KeyDown {
-                        keycode: Some(Keycode::Down), ..
-                    } => { self.controller_1.borrow_mut().set_down()},
+                        keycode: Some(Keycode::Down),
+                        ..
+                    } => self.controller_1.borrow_mut().set_down(),
                     Event::KeyUp {
-                        keycode: Some(Keycode::Down), ..
-                    } => { self.controller_1.borrow_mut().clear_down()},
+                        keycode: Some(Keycode::Down),
+                        ..
+                    } => self.controller_1.borrow_mut().clear_down(),
                     Event::KeyDown {
-                        keycode: Some(Keycode::Left), ..
-                    } => { self.controller_1.borrow_mut().set_left()},
+                        keycode: Some(Keycode::Left),
+                        ..
+                    } => self.controller_1.borrow_mut().set_left(),
                     Event::KeyUp {
-                        keycode: Some(Keycode::Left), ..
-                    } => { self.controller_1.borrow_mut().clear_left()},
+                        keycode: Some(Keycode::Left),
+                        ..
+                    } => self.controller_1.borrow_mut().clear_left(),
                     Event::KeyDown {
-                        keycode: Some(Keycode::Right), ..
-                    } => { self.controller_1.borrow_mut().set_right()},
+                        keycode: Some(Keycode::Right),
+                        ..
+                    } => self.controller_1.borrow_mut().set_right(),
                     Event::KeyUp {
-                        keycode: Some(Keycode::Right), ..
-                    } => { self.controller_1.borrow_mut().clear_right()},
+                        keycode: Some(Keycode::Right),
+                        ..
+                    } => self.controller_1.borrow_mut().clear_right(),
                     Event::KeyDown {
-                        keycode: Some(Keycode::Escape), ..
-                    } => { self.controller_1.borrow_mut().set_select()},
+                        keycode: Some(Keycode::Escape),
+                        ..
+                    } => self.controller_1.borrow_mut().set_select(),
                     Event::KeyUp {
-                        keycode: Some(Keycode::Escape), ..
-                    } => { self.controller_1.borrow_mut().clear_select()},
+                        keycode: Some(Keycode::Escape),
+                        ..
+                    } => self.controller_1.borrow_mut().clear_select(),
                     Event::KeyDown {
-                        keycode: Some(Keycode::Return), ..
-                    } => { self.controller_1.borrow_mut().set_start()},
+                        keycode: Some(Keycode::Return),
+                        ..
+                    } => self.controller_1.borrow_mut().set_start(),
                     Event::KeyUp {
-                        keycode: Some(Keycode::Return), ..
-                    } => { self.controller_1.borrow_mut().clear_start()},
+                        keycode: Some(Keycode::Return),
+                        ..
+                    } => self.controller_1.borrow_mut().clear_start(),
                     Event::KeyDown {
-                        keycode: Some(Keycode::Space), ..
-                    } => { self.controller_1.borrow_mut().set_a()},
+                        keycode: Some(Keycode::Space),
+                        ..
+                    } => self.controller_1.borrow_mut().set_a(),
                     Event::KeyUp {
-                        keycode: Some(Keycode::Space), ..
-                    } => { self.controller_1.borrow_mut().clear_a()},
+                        keycode: Some(Keycode::Space),
+                        ..
+                    } => self.controller_1.borrow_mut().clear_a(),
                     Event::KeyDown {
-                        keycode: Some(Keycode::LCtrl), ..
-                    } => { self.controller_1.borrow_mut().set_b()},
+                        keycode: Some(Keycode::LCtrl),
+                        ..
+                    } => self.controller_1.borrow_mut().set_b(),
                     Event::KeyUp {
-                        keycode: Some(Keycode::LCtrl), ..
-                    } => { self.controller_1.borrow_mut().clear_b()},
-                    _ => ()
+                        keycode: Some(Keycode::LCtrl),
+                        ..
+                    } => self.controller_1.borrow_mut().clear_b(),
+                    _ => (),
                 }
             }
         }
@@ -197,14 +232,27 @@ impl NesEmulator {
         let current_line = self.lines[self.line_index].clone();
         self.line_index += 1;
 
-        let opcode = self.memory.borrow_mut().read_rom(cpu_status.program_counter);
+        let opcode = self
+            .memory
+            .borrow_mut()
+            .read_rom(cpu_status.program_counter);
         let mut opcode_arg_1 = "  ".to_string();
         let mut opcode_arg_2 = "  ".to_string();
         if OPCODES[&opcode].len > 1 {
-            opcode_arg_1 = format!("{:02x}", self.memory.borrow_mut().read_rom(cpu_status.program_counter + 1));
+            opcode_arg_1 = format!(
+                "{:02x}",
+                self.memory
+                    .borrow_mut()
+                    .read_rom(cpu_status.program_counter + 1)
+            );
         }
         if OPCODES[&opcode].len > 2 {
-            opcode_arg_2 = format!("{:02x}", self.memory.borrow_mut().read_rom(cpu_status.program_counter + 2));
+            opcode_arg_2 = format!(
+                "{:02x}",
+                self.memory
+                    .borrow_mut()
+                    .read_rom(cpu_status.program_counter + 2)
+            );
         }
 
         let log_status = LogFileLine::new(current_line.as_str());
@@ -237,7 +285,6 @@ impl NesEmulator {
         assert_eq!(ppu_status.line, log_status.line);
 
         println!();
-
     }
 }
 

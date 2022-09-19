@@ -4,7 +4,6 @@ pub struct Interrupt {
     is_frame_updated: bool,
 }
 
-
 impl Interrupt {
     // Create new interrupt object
     pub fn new() -> Interrupt {

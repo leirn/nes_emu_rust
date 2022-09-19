@@ -369,9 +369,9 @@ impl Cpu {
 
         // Default is equivalent to JMP ($FFFC)
         if entry_point == None {
-            self.program_counter = entry_point.unwrap_or_else(|| self.memory.borrow_mut().read_rom_16(0xfffc));
-        }
-        else {
+            self.program_counter =
+                entry_point.unwrap_or_else(|| self.memory.borrow_mut().read_rom_16(0xfffc));
+        } else {
             self.program_counter = entry_point.unwrap();
         }
         println!("Entry point is {:x}", self.program_counter);
@@ -391,7 +391,7 @@ impl Cpu {
     pub fn next(&mut self) {
         if self.remaining_cycles > 0 {
             self.remaining_cycles -= 1;
-            return
+            return;
         }
 
         let opcode: u8 = self.memory.borrow_mut().read_rom(self.program_counter);
@@ -509,8 +509,7 @@ impl Cpu {
 
     /// Get ZeroPage address to be used for current opcode and X register
     fn get_zero_page_x_address(&mut self) -> u16 {
-        (self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.x_register)
-            as u16
+        (self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.x_register) as u16
     }
 
     /// Get value at ZeroPage address to be used for current opcode and X register
@@ -527,8 +526,7 @@ impl Cpu {
 
     /// Get ZeroPage address to be used for current opcode and Y register
     fn get_zero_page_y_address(&mut self) -> u16 {
-        (self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.y_register)
-            as u16
+        (self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.y_register) as u16
     }
 
     /// Get value at ZeroPage address to be used for current opcode and Y register
@@ -1052,9 +1050,9 @@ impl Cpu {
             self.negative = false;
             self.zero = true;
         } else if op2 - op1 >= 0x80 {
-                self.carry = false;
-                self.negative = false;
-                self.zero = false;
+            self.carry = false;
+            self.negative = false;
+            self.zero = false;
         } else {
             self.carry = false;
             self.negative = true;

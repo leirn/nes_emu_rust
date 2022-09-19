@@ -5,9 +5,7 @@ pub struct Controller {
 impl Controller {
     /// Instanciate new controller
     pub fn new() -> Controller {
-        Controller {
-            status: 0,
-        }
+        Controller { status: 0 }
     }
 
     /// Get controller status
@@ -67,7 +65,6 @@ impl Controller {
 
     /// Set when Down button is press
     pub fn set_down(&mut self) {
-
         self.status |= 0b100000;
     }
 
