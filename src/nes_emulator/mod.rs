@@ -23,14 +23,14 @@ pub struct NesEmulator {
     is_test_mode: bool,
     pub sdl_context: Rc<RefCell<sdl2::Sdl>>,
     clock: clock::Clock,
-    cartridge: Rc<RefCell<Cartridge>>,
+    _cartridge: Rc<RefCell<Cartridge>>,
     memory: Rc<RefCell<Memory>>,
     apu: Rc<RefCell<Apu>>,
     ppu: Rc<RefCell<Ppu>>,
     cpu: Rc<RefCell<Cpu>>,
     interrupt_bus: Rc<RefCell<Interrupt>>,
     controller_1: Rc<RefCell<Controller>>,
-    controller_2: Rc<RefCell<Controller>>,
+    _controller_2: Rc<RefCell<Controller>>,
     lines: Vec<String>,
     line_index: usize,
     parity: bool,
@@ -69,13 +69,13 @@ impl NesEmulator {
             is_test_mode: false,
             sdl_context: _sdl_context,
             clock: clock::Clock::new(60), // 60 fps target
-            cartridge: _cartridge,
+            _cartridge: _cartridge,
             memory: _memory,
             apu: _apu,
             ppu: _ppu,
             cpu: _cpu,
             controller_1: _controller_1,
-            controller_2: _controller_2,
+            _controller_2: _controller_2,
             interrupt_bus: _interrupt_bus,
             lines: vec![],
             line_index: 0,
@@ -290,7 +290,7 @@ impl NesEmulator {
 
 struct LogFileLine {
     pub program_counter: u16,
-    pub opcode: u8,
+    pub _opcode: u8,
     pub stack_pointer: u8,
     pub accumulator: u8,
     pub x_register: u8,
@@ -311,7 +311,7 @@ impl LogFileLine {
         let result3 = re.captures(line).unwrap();
 
         LogFileLine {
-            opcode: 0,
+            _opcode: 0,
             program_counter: u16::from_str_radix(&line[0..4], 16).unwrap(),
             stack_pointer: u8::from_str_radix(&result1["SP"], 16).unwrap(),
             accumulator: u8::from_str_radix(&result1["A"], 16).unwrap(),
