@@ -14,10 +14,10 @@ pub struct Screen {
 impl Screen {
     /// Instantiate Screen component
     pub fn new(sdl_context: Rc<RefCell<sdl2::Sdl>>) -> Screen {
-        let _scale = 3;
+        let scale = 3;
         let _video_subsystem = sdl_context.borrow_mut().video().unwrap();
         let _window = _video_subsystem
-            .window("Window", 256 * _scale, 240 * _scale)
+            .window("Window", 256 * scale, 240 * scale)
             .opengl() // this line DOES NOT enable opengl, but allows you to create/get an OpenGL context from your window.
             .build()
             .unwrap();
@@ -28,7 +28,7 @@ impl Screen {
             .unwrap();
 
         Screen {
-            scale: _scale,
+            scale: scale,
             //video_subsystem: _video_subsystem,
             //window: _window,
             canvas: _canvas,
@@ -55,10 +55,12 @@ impl Screen {
         // change the color of our drawing with a gold-color ...
         self.canvas.set_draw_color(PALETTE[36]);
         // A draw a rectangle which almost fills our window with it !
-        if let Err(e) =
-            self.canvas
-                .fill_rect(sdl2::rect::Rect::new(10, 10, 256 * 3 - 20, 240 * 3 - 20))
-        {
+        if let Err(e) = self.canvas.fill_rect(sdl2::rect::Rect::new(
+            10,
+            10,
+            256 * self.scale - 20,
+            240 * self.scale - 20,
+        )) {
             println!("{:?}", e);
         }
 
