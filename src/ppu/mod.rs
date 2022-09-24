@@ -609,7 +609,7 @@ impl Ppu {
 
     /// Clear vblank bit in ppustatus register
     fn clear_vblank(&mut self) {
-        self.ppustatus &= 0b11111111;
+        self.ppustatus &= 0b01111111;
     }
 
     /// Set sprite 0 bit in ppustatus register
@@ -692,11 +692,11 @@ impl Ppu {
             // TODO : self.col must only wrok where no scrolling, use register_v instead ?
             if self.col >= sprite_x && self.col < sprite_x + 8 {
                 let x_offset = self.col % 8;
-                let bit1 = (self.sprite_low_byte_table_register[i as usize] >> (7 - x_offset)) & 1;
-                let bit2 = (self.sprite_high_byte_table_register[i as usize] >> (7 - x_offset)) & 1;
+                let bit1 = (self.sprite_low_byte_table_register[i] >> (7 - x_offset)) & 1;
+                let bit2 = (self.sprite_high_byte_table_register[i] >> (7 - x_offset)) & 1;
                 let sprite_color_code = bit1 | (bit2 << 1);
 
-                let attribute = self.sprite_attribute_table_register[i as usize];
+                let attribute = self.sprite_attribute_table_register[i];
                 let priority = (attribute >> 5) & 0x1;
                 let sprite_color_palette = attribute & 0b11;
 
