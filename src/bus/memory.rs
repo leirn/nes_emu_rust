@@ -87,15 +87,10 @@ impl Memory {
             0x2000..=0x3fff => {
                 let local_address = 0x2000 + (address % 8);
                 match local_address {
-                    0x2000 => 0,
-                    0x2001 => 0,
                     0x2002 => self.ppu.borrow_mut().read_0x2002(),
-                    0x2003 => 0,
                     0x2004 => self.ppu.borrow_mut().read_0x2004(),
-                    0x2005 => 0,
-                    0x2006 => 0,
                     0x2007 => self.ppu.borrow_mut().read_0x2007(),
-                    _ => 0, // won"t happen based on local_address computation
+                    _ => panic!("Write only address : {}", address),
                 }
             }
             0x4000..=0x4017 => {
@@ -139,7 +134,7 @@ impl Memory {
                 match local_address {
                     0x2000 => self.ppu.borrow_mut().write_0x2000(value),
                     0x2001 => self.ppu.borrow_mut().write_0x2001(value),
-                    0x2002 => (), // Read-only
+                    0x2002 => panic!("Read only address {}", address), // Read-only
                     0x2003 => self.ppu.borrow_mut().write_0x2003(value),
                     0x2004 => self.ppu.borrow_mut().write_0x2004(value),
                     0x2005 => self.ppu.borrow_mut().write_0x2005(value),
@@ -150,13 +145,6 @@ impl Memory {
             }
             0x4000..=0x4017 => {
                 match address {
-                    // Save inputs 1 and 2
-                    0x4016 => {
-                        if value & 1 == 0 {
-                            self.controller_1_status = self.controller_1.borrow_mut().get_status();
-                            self.controller_2_status = self.controller_2.borrow_mut().get_status();
-                        }
-                    }
                     // OAMDMA
                     0x4014 => {
                         let start = (value << 8) as usize;
@@ -165,6 +153,13 @@ impl Memory {
                             .borrow_mut()
                             .write_oamdma(&self.internal_ram[start..=end]);
                         return 514;
+                    }
+                    // Save inputs 1 and 2
+                    0x4016 => {
+                        if value & 1 == 0 {
+                            self.controller_1_status = self.controller_1.borrow_mut().get_status();
+                            self.controller_2_status = self.controller_2.borrow_mut().get_status();
+                        }
                     }
                     // Read APU
                     _ => self.apu.borrow_mut().write_registers(address, value),
