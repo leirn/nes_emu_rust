@@ -425,7 +425,7 @@ impl Cpu {
     ///
     /// Interruptions last for 7 CPU cycles
     fn general_interrupt(&mut self, address: u16) {
-        self.push(((self.program_counter >> 8) & 255) as u8);
+        self.push((self.program_counter >> 8) as u8);
         self.push((self.program_counter & 255) as u8);
         self.push(self.get_status_register());
 
