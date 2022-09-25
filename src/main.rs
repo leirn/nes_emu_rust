@@ -4,6 +4,9 @@ extern crate argparse;
 extern crate yaml_rust;
 use argparse::{ArgumentParser, Store, StoreTrue};
 
+use std::sync::mpsc;
+use std::thread;
+
 use yaml_rust::YamlLoader;
 mod apu;
 mod bus;
@@ -11,8 +14,16 @@ mod cartridge;
 mod cpu;
 mod nes_emulator;
 mod ppu;
+mod tui;
 
 fn main() {
+    let (tx_to_tui, rx_to_tui) = mpsc::channel();
+    let (tx_from_tui, rx_from_tui) = mpsc::channel();
+
+    let _tui_thread_handle = thread::spawn(|| {
+        tui::start_tui(rx_to_tui, tx_from_tui);
+    });
+
     let mut verbose = false;
     let mut rom_file: String = String::new();
     let mut test_name: String = String::new();
@@ -35,7 +46,7 @@ fn main() {
     // TODO : convert to relative path
 
     if !test_name.is_empty() {
-        let settings = load_file("C:/Users/lvromman/Documents/GitHub/nes_emu_rust/config.yaml");
+        let settings = load_file("C:/Users/lvromman/Documents/GitHub/nes_emu_rust/src/config.yaml");
         println!("Test ? {}", test_name);
         println!("{:?}", settings["tests"]["nestest"]);
         println!(
