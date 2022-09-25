@@ -125,7 +125,7 @@ impl Ppu {
             }
         }
         self.screen.present();
-        println!("PPU started, screen initialized");
+        info!("PPU started, screen initialized");
     }
 
     /// Next function that implement the almost exact PPU rendering workflow

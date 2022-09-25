@@ -1,28 +1,23 @@
 #![allow(arithmetic_overflow)]
+#[macro_use]
+extern crate log;
 
 extern crate argparse;
 extern crate yaml_rust;
 use argparse::{ArgumentParser, Store, StoreTrue};
-
-use std::sync::mpsc;
-use std::thread;
-
+use log::{info, trace, warn};
+use simple_logger::SimpleLogger;
 use yaml_rust::YamlLoader;
+
 mod apu;
 mod bus;
 mod cartridge;
 mod cpu;
 mod nes_emulator;
 mod ppu;
-mod tui;
 
 fn main() {
-    let (tx_to_tui, rx_to_tui) = mpsc::channel();
-    let (tx_from_tui, rx_from_tui) = mpsc::channel();
-
-    let _tui_thread_handle = thread::spawn(|| {
-        tui::start_tui(rx_to_tui, tx_from_tui);
-    });
+    simple_logger::init().unwrap();
 
     let mut verbose = false;
     let mut rom_file: String = String::new();
@@ -47,14 +42,15 @@ fn main() {
 
     if !test_name.is_empty() {
         let settings = load_file("C:/Users/lvromman/Documents/GitHub/nes_emu_rust/src/config.yaml");
-        println!("Test ? {}", test_name);
-        println!("{:?}", settings["tests"]["nestest"]);
-        println!(
+        info!("Test ? {}", test_name);
+        info!("{:?}", settings["tests"]["nestest"]);
+        info!(
             "{}",
             settings["tests"][test_name.as_str()]["rom_file"]
                 .as_str()
                 .unwrap()
         );
+
         let current_dir = std::env::current_dir().unwrap();
         let rom_file = current_dir.join(
             settings["tests"][test_name.as_str()]["rom_file"]
@@ -69,16 +65,16 @@ fn main() {
         let entry_point = settings["tests"][test_name.as_str()]["entry_point"]
             .as_i64()
             .unwrap();
-        println!("Rom test file : {}", rom_file.to_str().unwrap());
-        println!("Log test file : {}", log_file.to_str().unwrap());
-        println!("Entry point should be : {:x}", entry_point);
+        info!("Rom test file : {}", rom_file.to_str().unwrap());
+        info!("Log test file : {}", log_file.to_str().unwrap());
+        info!("Entry point should be : {:x}", entry_point);
         let mut emulator = nes_emulator::NesEmulator::new(rom_file.to_str().unwrap().to_string());
         emulator.set_test_mode(log_file.to_str().unwrap());
         emulator.start(Some(entry_point as u16));
+    } else {
+        let mut emulator = nes_emulator::NesEmulator::new(rom_file);
+        emulator.start(None);
     }
-
-    let mut emulator = nes_emulator::NesEmulator::new(rom_file);
-    emulator.start(None);
 }
 
 fn load_file(file: &str) -> yaml_rust::Yaml {

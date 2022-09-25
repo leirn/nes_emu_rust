@@ -1,4 +1,5 @@
 //! Cartridge object
+use log::{info, trace, warn};
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
@@ -56,12 +57,12 @@ impl Cartridge {
 
     /// Parse a rom
     pub fn parse_rom(&mut self, file_name: String) {
-        println!("Attemp to read file : {}", file_name);
+        info!("Attemp to read file : {}", file_name);
         let file = File::open(file_name).unwrap();
         let mut buf_reader = BufReader::new(file);
         buf_reader = self.parse_header(buf_reader);
 
-        println!("PRG Rom size is {}", self.prg_rom_size);
+        info!("PRG Rom size is {}", self.prg_rom_size);
 
         self.prg_rom = vec![];
         self.chr_rom = vec![];
@@ -88,7 +89,7 @@ impl Cartridge {
 
         // Mapper 0 trick
         if self.prg_rom_size == 0x4000 {
-            println!("PRG Rom extension");
+            info!("PRG Rom extension");
             let tmp_vec = self.prg_rom.clone();
             self.prg_rom.extend(tmp_vec.iter());
             self.prg_rom_size = self.prg_rom.len();
@@ -100,7 +101,7 @@ impl Cartridge {
         }
 
         //self.file_name = file_name.clone();
-        println!("{}", self.file_name)
+        info!("{}", self.file_name)
     }
 
     /// Parse ROM header
@@ -111,7 +112,7 @@ impl Cartridge {
             .read_to_end(&mut self.magic)
             .expect("File too short, check your file for error");
 
-        println!(
+        info!(
             "Magic is {}-{}-{}-{}",
             self.magic[0], self.magic[1], self.magic[2], self.magic[3]
         );
@@ -121,7 +122,7 @@ impl Cartridge {
             .take(1)
             .read_to_end(&mut tmp)
             .expect("File too short, check your file for error");
-        println!("Byte for prg_rom_size is {}", tmp[0]);
+        info!("Byte for prg_rom_size is {}", tmp[0]);
         self.prg_rom_size = (tmp[0] as usize) * 16 * 1024;
         let mut tmp: Vec<u8> = vec![];
         buf_reader

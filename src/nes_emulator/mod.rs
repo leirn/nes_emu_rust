@@ -10,6 +10,7 @@ use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::Write;
 use std::rc::Rc;
+use std::sync::mpsc::Sender;
 
 use crate::apu::Apu;
 use crate::bus::controller::Controller;
@@ -44,7 +45,7 @@ impl NesEmulator {
     /// Instantiate the Emulator
     pub fn new(rom_file: String) -> NesEmulator {
         let _sdl_context = Rc::new(RefCell::new(sdl2::init().unwrap()));
-        println!("SDL Context initialized");
+        info!("SDL Context initialized");
 
         let _interrupt_bus = Rc::new(RefCell::new(Interrupt::new()));
         let _controller_1 = Rc::new(RefCell::new(Controller::new()));
@@ -138,7 +139,7 @@ impl NesEmulator {
                     && self.cpu.borrow_mut().get_remaining_cycles() == 0
                 {
                     let log = self.get_status_log();
-                    //println!("{}", log);
+                    //self.log("{}", log);
                     self.log_file
                         .as_mut()
                         .unwrap()
@@ -160,7 +161,7 @@ impl NesEmulator {
                     .check_and_clear_frame_updated()
                 {
                     self.clock.tick();
-                    println!("FPS : {}", self.clock.get_fps());
+                    info!("FPS : {}", self.clock.get_fps());
                 }
             }
 
@@ -176,6 +177,10 @@ impl NesEmulator {
                         keycode: Some(Keycode::P),
                         ..
                     } => self.toggle_pause(),
+                    Event::KeyDown {
+                        keycode: Some(Keycode::S),
+                        ..
+                    } => println!("{}", self.get_status_log()),
                     Event::KeyDown {
                         keycode: Some(Keycode::Up),
                         ..
@@ -312,7 +317,7 @@ impl NesEmulator {
     /// Performs test execution against reference execution log to find descrepancies
     fn check_test(&mut self, cpu_status: crate::cpu::Status, ppu_status: crate::ppu::Status) {
         if self.line_index == self.lines.len() {
-            println!("Test déroulé sans erreur ! SUCCESS !!!");
+            self.log(String::from("Test déroulé sans erreur ! SUCCESS !!!"));
             std::process::exit(0);
         }
         let current_line = self.lines[self.line_index].clone();
@@ -342,8 +347,8 @@ impl NesEmulator {
         }
 
         let log_status = LogFileLine::new(current_line.as_str());
-        println!("{}", current_line);
-        println!("{:x}  {:02x} {} {}  {:30}  A:{:02x} X:{:02x} Y:{:02x} P:{:02x} SP:{:02x} PPU:{},{} CYC:{}",
+        self.log(format!("{}", current_line));
+        self.log(format!("{:x}  {:02x} {} {}  {:30}  A:{:02x} X:{:02x} Y:{:02x} P:{:02x} SP:{:02x} PPU:{},{} CYC:{}",
             cpu_status.program_counter,
             opcode,
             opcode_arg_1,
@@ -357,7 +362,7 @@ impl NesEmulator {
             ppu_status.line,
             ppu_status.col,
             cpu_status.total_cycles,
-        );
+        ));
 
         assert_eq!(cpu_status.program_counter, log_status.program_counter);
         //assert_eq!(opcode, log_status.opcode);
@@ -369,8 +374,10 @@ impl NesEmulator {
         assert_eq!(cpu_status.total_cycles, log_status.total_cycles);
         assert_eq!(ppu_status.col, log_status.col);
         assert_eq!(ppu_status.line, log_status.line);
+    }
 
-        println!();
+    fn log(&self, message: String) {
+        info!("{}", message);
     }
 }
 

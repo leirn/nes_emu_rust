@@ -374,7 +374,6 @@ impl Cpu {
         } else {
             self.program_counter = entry_point.unwrap();
         }
-        println!("Entry point is {:x}", self.program_counter);
 
         //Start sequence push stack three time
         self.push(0);
