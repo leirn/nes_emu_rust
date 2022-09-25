@@ -147,7 +147,7 @@ impl Memory {
                 match address {
                     // OAMDMA
                     0x4014 => {
-                        let start = (value << 8) as usize;
+                        let start = (value as usize) << 8;
                         let end = start + 0x100 - 1;
                         self.ppu
                             .borrow_mut()
@@ -177,5 +177,55 @@ impl Memory {
                 .write_prg_rom(address - 0x8000, value),
         }
         0
+    }
+
+    /// Get xor CRC of zero page memory
+    pub fn xor_zero_page(&self) -> u8 {
+        let mut xor = 0;
+        for i in self.internal_ram[0..=255].iter() {
+            xor ^= i;
+        }
+        xor
+    }
+
+    /// Print 0x20 long memory chunk
+    pub fn get_memory_as_string(&self, address: u16) -> String {
+        let address = address as usize;
+        format!("{:04x}:{:04x}    {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x}",
+            address,
+            address + 0x1f,
+            self.internal_ram[address],
+            self.internal_ram[address+1],
+            self.internal_ram[address+2],
+            self.internal_ram[address+3],
+            self.internal_ram[address+4],
+            self.internal_ram[address+5],
+            self.internal_ram[address+6],
+            self.internal_ram[address+7],
+            self.internal_ram[address+8],
+            self.internal_ram[address+9],
+            self.internal_ram[address+10],
+            self.internal_ram[address+11],
+            self.internal_ram[address+12],
+            self.internal_ram[address+13],
+            self.internal_ram[address+14],
+            self.internal_ram[address+15],
+            self.internal_ram[address+16],
+            self.internal_ram[address+17],
+            self.internal_ram[address+18],
+            self.internal_ram[address+19],
+            self.internal_ram[address+20],
+            self.internal_ram[address+21],
+            self.internal_ram[address+22],
+            self.internal_ram[address+23],
+            self.internal_ram[address+24],
+            self.internal_ram[address+25],
+            self.internal_ram[address+26],
+            self.internal_ram[address+27],
+            self.internal_ram[address+28],
+            self.internal_ram[address+29],
+            self.internal_ram[address+30],
+            self.internal_ram[address+31],
+        )
     }
 }
