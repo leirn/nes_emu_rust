@@ -5,8 +5,8 @@ extern crate log;
 extern crate argparse;
 extern crate yaml_rust;
 use argparse::{ArgumentParser, Store, StoreTrue};
-use log::{info, trace, warn};
-use simple_logger::SimpleLogger;
+use log::info;
+
 use yaml_rust::YamlLoader;
 
 mod apu;

@@ -2778,7 +2778,7 @@ impl Cpu {
         self.remaining_cycles
     }
 
-    pub fn get_total_cycles(&self) -> u32 {
+    pub fn _get_total_cycles(&self) -> u32 {
         self.total_cycles
     }
 }

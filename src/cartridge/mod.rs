@@ -1,5 +1,5 @@
 //! Cartridge object
-use log::{info, trace, warn};
+use log::info;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;

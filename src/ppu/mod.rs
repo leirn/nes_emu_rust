@@ -435,7 +435,7 @@ impl Ppu {
 
     /// Read PPU internal register at 0x2007 memory address
     pub fn read_0x2007(&mut self) -> u8 {
-        let mut value: u8;
+        let value: u8;
         if self.ppuaddr % 0x4000 < 0x3f00 {
             // Delayed buffering requiring dummy read
             value = self.ppudata;

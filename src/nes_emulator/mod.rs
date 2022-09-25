@@ -10,7 +10,6 @@ use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::Write;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 
 use crate::apu::Apu;
 use crate::bus::controller::Controller;

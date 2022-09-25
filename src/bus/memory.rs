@@ -40,8 +40,8 @@ impl Memory {
 
     /// Read 16-bit little endian address from memory
     pub fn read_rom_16(&mut self, address: u16) -> u16 {
-        let mut high = 0;
-        let mut low = 0;
+        let high;
+        let low;
         if address > 0x7fff {
             low = self.cartridge.borrow_mut().read_prg_rom(address - 0x8000);
             high = self
@@ -58,8 +58,8 @@ impl Memory {
     /// Read 16-bit little endian address from memory without crossing memory page
     pub fn read_rom_16_no_crossing_page(&mut self, address: u16) -> u16 {
         let high_address = (address & 0xFF00) + ((address + 1) & 0xff);
-        let mut high = 0;
-        let mut low = 0;
+        let high;
+        let low;
         if address > 0x7fff {
             low = self.cartridge.borrow_mut().read_prg_rom(address - 0x8000);
             high = self
@@ -189,7 +189,7 @@ impl Memory {
     }
 
     /// Print 0x20 long memory chunk
-    pub fn get_memory_as_string(&self, address: u16) -> String {
+    pub fn _get_memory_as_string(&self, address: u16) -> String {
         let address = address as usize;
         format!("{:04x}:{:04x}    {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x}",
             address,
