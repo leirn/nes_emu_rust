@@ -31,7 +31,7 @@ impl Apu {
     ) -> Apu {
         let mut apu = Apu {
             mixer: Mixer {
-                phase_inc: 440.0 / 44100 as f32,
+                phase_inc: 440.0 / 44100_f32,
                 phase: 0.0,
                 volume: 0.25,
             },

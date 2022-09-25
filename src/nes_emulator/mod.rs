@@ -143,9 +143,9 @@ impl NesEmulator {
                     self.log_file
                         .as_mut()
                         .unwrap()
-                        .write(log.as_bytes())
+                        .write_all(log.as_bytes())
                         .unwrap();
-                    self.log_file.as_mut().unwrap().write(b"\n").unwrap();
+                    self.log_file.as_mut().unwrap().write_all(b"\n").unwrap();
 
                     //if self.cpu.borrow_mut().get_total_cycles() > 87529 {
                     if self.clock.get_clock_count() > 10 {
@@ -317,7 +317,7 @@ impl NesEmulator {
     /// Performs test execution against reference execution log to find descrepancies
     fn check_test(&mut self, cpu_status: crate::cpu::Status, ppu_status: crate::ppu::Status) {
         if self.line_index == self.lines.len() {
-            self.log(String::from("Test déroulé sans erreur ! SUCCESS !!!"));
+            info!("Test déroulé sans erreur ! SUCCESS !!!");
             std::process::exit(0);
         }
         let current_line = self.lines[self.line_index].clone();
@@ -347,8 +347,8 @@ impl NesEmulator {
         }
 
         let log_status = LogFileLine::new(current_line.as_str());
-        self.log(format!("{}", current_line));
-        self.log(format!("{:x}  {:02x} {} {}  {:30}  A:{:02x} X:{:02x} Y:{:02x} P:{:02x} SP:{:02x} PPU:{},{} CYC:{}",
+        info!("{}", current_line);
+        info!("{:x}  {:02x} {} {}  {:30}  A:{:02x} X:{:02x} Y:{:02x} P:{:02x} SP:{:02x} PPU:{},{} CYC:{}",
             cpu_status.program_counter,
             opcode,
             opcode_arg_1,
@@ -362,7 +362,7 @@ impl NesEmulator {
             ppu_status.line,
             ppu_status.col,
             cpu_status.total_cycles,
-        ));
+        );
 
         assert_eq!(cpu_status.program_counter, log_status.program_counter);
         //assert_eq!(opcode, log_status.opcode);
@@ -374,10 +374,6 @@ impl NesEmulator {
         assert_eq!(cpu_status.total_cycles, log_status.total_cycles);
         assert_eq!(ppu_status.col, log_status.col);
         assert_eq!(ppu_status.line, log_status.line);
-    }
-
-    fn log(&self, message: String) {
-        info!("{}", message);
     }
 }
 
