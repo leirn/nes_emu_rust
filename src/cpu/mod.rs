@@ -1019,7 +1019,6 @@ impl Cpu {
     }
 
     /// Function call for BRK. Implied
-    ///TODO ! Should set Break flag to 1
     fn fn_0x00(&mut self) -> (u16, u32) {
         self.program_counter += 1;
         self.push((self.program_counter >> 8) as u8);
