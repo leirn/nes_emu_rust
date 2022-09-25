@@ -12,6 +12,7 @@ const CLOCK_HISTORY_SIZE: usize = 11;
 pub struct Clock {
     target_frame_duration: Duration,
     frame_history: VecDeque<SystemTime>,
+    clock_count: u128,
 }
 
 impl Clock {
@@ -22,11 +23,13 @@ impl Clock {
         Clock {
             target_frame_duration: _target_frame_duration,
             frame_history: VecDeque::from([SystemTime::now()]),
+            clock_count: 0,
         }
     }
 
     /// Tick at each frame and wait to reach the target frame rate
     pub fn tick(&mut self) {
+        self.clock_count += 1;
         let now = SystemTime::now();
         sleep(
             self.target_frame_duration.saturating_sub(
@@ -38,6 +41,11 @@ impl Clock {
         if self.frame_history.len() > CLOCK_HISTORY_SIZE {
             self.frame_history.pop_front();
         }
+    }
+
+    /// Get number of clock ticks since start
+    pub fn get_clock_count(&self) -> u128 {
+        self.clock_count
     }
 
     /// Get current fps

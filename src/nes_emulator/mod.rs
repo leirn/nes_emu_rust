@@ -7,6 +7,8 @@ use std::cell::RefCell;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::io::BufWriter;
+use std::io::Write;
 use std::rc::Rc;
 
 use crate::apu::Apu;
@@ -34,6 +36,8 @@ pub struct NesEmulator {
     lines: Vec<String>,
     line_index: usize,
     parity: bool,
+    log_activated: bool,
+    log_file: Option<std::io::BufWriter<std::fs::File>>,
 }
 
 impl NesEmulator {
@@ -80,11 +84,20 @@ impl NesEmulator {
             lines: vec![],
             line_index: 0,
             parity: false,
+            log_activated: false,
+            log_file: None,
         }
     }
 
     /// Starts and runs the Emulator execution
     pub fn start(&mut self, entry_point: Option<u16>) {
+        self.log_activated = false;
+        if self.log_activated {
+            self.log_file = Some(BufWriter::new(
+                File::create(r#"C:\Users\lvromman\Documents\GitHub\nes_emu_rust\log.txt"#)
+                    .expect("Cannot create message"),
+            ));
+        }
         self.ppu.borrow_mut().start();
         self.cpu.borrow_mut().start(entry_point);
         self.ppu.borrow_mut().next();
@@ -118,6 +131,27 @@ impl NesEmulator {
                     let cpu_status = self.cpu.borrow_mut().get_status();
                     let ppu_status = self.ppu.borrow_mut().get_status();
                     self.check_test(cpu_status, ppu_status);
+                }
+
+                if self.log_activated
+                    && self.log_file.is_some()
+                    && self.cpu.borrow_mut().get_remaining_cycles() == 0
+                {
+                    let log = self.get_status_log();
+                    //println!("{}", log);
+                    self.log_file
+                        .as_mut()
+                        .unwrap()
+                        .write(log.as_bytes())
+                        .unwrap();
+                    self.log_file.as_mut().unwrap().write(b"\n").unwrap();
+
+                    //if self.cpu.borrow_mut().get_total_cycles() > 87529 {
+                    if self.clock.get_clock_count() > 10 {
+                        self.ppu.borrow_mut().print_primary_oam();
+                        self.ppu.borrow_mut().print_secondary_oam();
+                        std::process::exit(0);
+                    }
                 }
 
                 if self
@@ -212,6 +246,54 @@ impl NesEmulator {
         }
     }
 
+    fn get_status_log(&self) -> String {
+        let cpu_status = self.cpu.borrow_mut().get_status();
+        let ppu_status = self.ppu.borrow_mut().get_status();
+        let ppu_full_status = self.ppu.borrow_mut().get_ppustatus_as_string();
+        let opcode = self
+            .memory
+            .borrow_mut()
+            .read_rom(cpu_status.program_counter);
+        let mut opcode_arg_1 = "  ".to_string();
+        let mut opcode_arg_2 = "  ".to_string();
+        if OPCODES[&opcode].len > 1 {
+            opcode_arg_1 = format!(
+                "{:02x}",
+                self.memory
+                    .borrow_mut()
+                    .read_rom(cpu_status.program_counter + 1)
+            );
+        }
+        if OPCODES[&opcode].len > 2 {
+            opcode_arg_2 = format!(
+                "{:02x}",
+                self.memory
+                    .borrow_mut()
+                    .read_rom(cpu_status.program_counter + 2)
+            );
+        }
+
+        let zero_page_xor = self.memory.borrow().xor_zero_page();
+
+        format!("{:x}  {:02x} {} {}  {:30}  A:{:02x} X:{:02x} Y:{:02x} P:{:02x} SP:{:02x} PPU:{},{} CYC:{}, ZeroPage:{:02x},{}",
+            cpu_status.program_counter,
+            opcode,
+            opcode_arg_1,
+            opcode_arg_2,
+            OPCODES[&opcode].syntax,
+            cpu_status.accumulator,
+            cpu_status.x_register,
+            cpu_status.y_register,
+            cpu_status.status_register,
+            cpu_status.stack_pointer,
+            ppu_status.line,
+            ppu_status.col,
+            cpu_status.total_cycles,
+            zero_page_xor,
+            ppu_full_status,
+        )
+    }
+
     /// Toggles pause on the emulator execution
     pub fn toggle_pause(&mut self) {
         self.pause = !self.pause;
@@ -229,6 +311,10 @@ impl NesEmulator {
 
     /// Performs test execution against reference execution log to find descrepancies
     fn check_test(&mut self, cpu_status: crate::cpu::Status, ppu_status: crate::ppu::Status) {
+        if self.line_index == self.lines.len() {
+            println!("Test déroulé sans erreur ! SUCCESS !!!");
+            std::process::exit(0);
+        }
         let current_line = self.lines[self.line_index].clone();
         self.line_index += 1;
 
