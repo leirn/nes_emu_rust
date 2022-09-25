@@ -427,7 +427,7 @@ impl Cpu {
     fn general_interrupt(&mut self, address: u16) {
         self.push((self.program_counter >> 8) as u8);
         self.push((self.program_counter & 255) as u8);
-        self.push(self.get_status_register());
+        self.push(self.get_status_register() & 0b11101111); // NMI and IRQ set break flag to 0
 
         self.interrupt = false;
 
@@ -459,6 +459,7 @@ impl Cpu {
         self.interrupt = ((status_register >> 2) & 1) != 0;
         self.decimal = ((status_register >> 3) & 1) != 0;
         //self.flagB =      (status_register >> 4) & 1;
+        self.break_flag = false;
         self.overflow = ((status_register >> 6) & 1) != 0;
         self.negative = ((status_register >> 7) & 1) != 0;
     }
@@ -996,7 +997,7 @@ impl Cpu {
             self.program_counter = self.program_counter.wrapping_add(signed as u16);
             self.additionnal_cycles += 1;
             if self.program_counter & 0xff00 != old_pc & 0xff00 {
-                self.additionnal_cycles = 1;
+                self.additionnal_cycles += 1;
             }
         }
         (2, 2)
@@ -1023,7 +1024,7 @@ impl Cpu {
         self.program_counter += 1;
         self.push((self.program_counter >> 8) as u8);
         self.push((self.program_counter & 0xff) as u8);
-        self.push(self.get_status_register());
+        self.push(self.get_status_register() | (1 << 4));
         self.program_counter = self.memory.borrow_mut().read_rom_16(0xfffe);
         (0, 7)
     }
@@ -1640,7 +1641,7 @@ impl Cpu {
 
     /// Function call for LSR. Accumulator
     fn fn_0x4a(&mut self) -> (u16, u32) {
-        self.carry = self.accumulator == 1;
+        self.carry = (self.accumulator & 1) == 1;
         self.accumulator >>= 1;
         self.set_flags_nz(self.accumulator);
         (1, 2)
@@ -2777,5 +2778,9 @@ impl Cpu {
 
     pub fn get_remaining_cycles(&self) -> u32 {
         self.remaining_cycles
+    }
+
+    pub fn get_total_cycles(&self) -> u32 {
+        self.total_cycles
     }
 }
