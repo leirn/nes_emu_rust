@@ -98,6 +98,7 @@ impl NesEmulator {
                     .expect("Cannot create message"),
             ));
         }
+        self.apu.borrow_mut().start();
         self.ppu.borrow_mut().start();
         self.cpu.borrow_mut().start(entry_point);
         self.ppu.borrow_mut().next();

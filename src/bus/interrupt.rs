@@ -27,7 +27,7 @@ impl Interrupt {
     }
 
     /// Raises an IRQ interrupt
-    pub fn raise_irq(&mut self) {
+    pub fn _raise_irq(&mut self) {
         self.is_irq = true;
     }
 

@@ -5,6 +5,7 @@ use sdl2::audio::{AudioCallback, AudioSpecDesired};
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[allow(dead_code)]
 pub struct Apu {
     sdl_audio: sdl2::AudioSubsystem,
     interrupt_bus: Rc<RefCell<Interrupt>>,
@@ -129,7 +130,7 @@ impl Apu {
     }
 
     pub fn start(&mut self) {
-        let desired_spec = AudioSpecDesired {
+        let _desired_spec = AudioSpecDesired {
             freq: Some(44100),
             channels: Some(1), // mono
             samples: None,     // default sample size
@@ -209,13 +210,13 @@ impl Apu {
         0
     }
 
-    fn set_status(&mut self, value: u8) {}
+    fn set_status(&mut self, _value: u8) {}
 
     fn get_frame_counter(&self) -> u8 {
         0
     }
 
-    fn set_frame_counter(&mut self, value: u8) {}
+    fn set_frame_counter(&mut self, _value: u8) {}
 }
 
 struct Mixer {
@@ -229,10 +230,11 @@ impl AudioCallback for Mixer {
     type Channel = f32;
     fn callback(&mut self, out: &mut [f32]) {
         for x in out.iter_mut() {
-            *x = match self.phase {
-                0.0..=0.5 => self.volume,
-                _ => -self.volume,
-            };
+            if self.phase >= 0.0 && self.phase <= 0.5 {
+                *x = self.volume;
+            } else {
+                *x = -self.volume;
+            }
             self.phase = (self.phase + self.phase_inc) % 1.0;
         }
     }
