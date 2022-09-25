@@ -216,7 +216,7 @@ impl Ppu {
             3 => {
                 // read AT Byte for N+2 tile
                 let attribute_address = 0x23c0
-                    | (self.register_v & 0xC00)
+                    | (self.register_v & 0xc00)
                     | ((self.register_v >> 4) & 0x38)
                     | ((self.register_v >> 2) & 0x07);
                 let at_byte = self.read_ppu_memory(attribute_address);
@@ -777,5 +777,77 @@ impl Ppu {
     pub fn set_high_bg_tile_byte(&mut self, high_bg_tile_byte: u8) {
         self.bg_high_byte_table_register
             .push_back(high_bg_tile_byte);
+    }
+
+    pub fn get_ppustatus_as_string(&self) -> String {
+        format!(
+            "P_OAM:{:02x},S_OAM:{:02x}",
+            self.get_xor_primary_oam(),
+            self.get_xor_secondary_oam()
+        )
+    }
+
+    fn get_xor_primary_oam(&self) -> u8 {
+        let mut xor = 0;
+        for i in self.primary_oam.iter() {
+            xor ^= i;
+        }
+        xor
+    }
+
+    fn get_xor_secondary_oam(&self) -> u8 {
+        let mut xor = 0;
+        for i in self.secondary_oam.iter() {
+            xor ^= i;
+        }
+        xor
+    }
+
+    pub fn print_primary_oam(&self) {
+        println!("Primary OAM");
+    }
+
+    pub fn print_secondary_oam(&self) {
+        println!("Secondary OAM");
+        self.sub_print_oam(0);
+        self.sub_print_oam(0x20);
+    }
+    fn sub_print_oam(&self, address: usize) {
+        println!("{:04x}:{:04x}    {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x}",
+            address,
+            address + 0x1f,
+            self.secondary_oam[address],
+            self.secondary_oam[address+1],
+            self.secondary_oam[address+2],
+            self.secondary_oam[address+3],
+            self.secondary_oam[address+4],
+            self.secondary_oam[address+5],
+            self.secondary_oam[address+6],
+            self.secondary_oam[address+7],
+            self.secondary_oam[address+8],
+            self.secondary_oam[address+9],
+            self.secondary_oam[address+10],
+            self.secondary_oam[address+11],
+            self.secondary_oam[address+12],
+            self.secondary_oam[address+13],
+            self.secondary_oam[address+14],
+            self.secondary_oam[address+15],
+            self.secondary_oam[address+16],
+            self.secondary_oam[address+17],
+            self.secondary_oam[address+18],
+            self.secondary_oam[address+19],
+            self.secondary_oam[address+20],
+            self.secondary_oam[address+21],
+            self.secondary_oam[address+22],
+            self.secondary_oam[address+23],
+            self.secondary_oam[address+24],
+            self.secondary_oam[address+25],
+            self.secondary_oam[address+26],
+            self.secondary_oam[address+27],
+            self.secondary_oam[address+28],
+            self.secondary_oam[address+29],
+            self.secondary_oam[address+30],
+            self.secondary_oam[address+31],
+        );
     }
 }
