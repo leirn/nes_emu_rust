@@ -16,6 +16,8 @@ phf = { version = "0.10.1", features = ["macros"] }
 yaml-rust = "0.4"
 argparse = "0.2.2"
 regex = "1"
+tui = "0.19"
+crossterm = "0.25"
 
 [dependencies.sdl2]
 version = "0.35.2"
