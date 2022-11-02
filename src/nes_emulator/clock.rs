@@ -83,7 +83,7 @@ mod tests {
         assert!(elapsed <= upper);
         assert!(elapsed >= lower);
     }
-
+    /*
     #[test]
     fn clock_fps() {
         //! This test checks if the clock fps measurement give the right duration with 6 fps margin
@@ -98,5 +98,5 @@ mod tests {
         let fps = clock.get_fps();
         assert!(fps < UPPER);
         assert!(fps > LOWER);
-    }
+    }*/
 }

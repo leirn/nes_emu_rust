@@ -3,6 +3,7 @@
 mod screen;
 use crate::bus::interrupt::Interrupt;
 use crate::cartridge::Cartridge;
+use log::info;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
