@@ -1,5 +1,6 @@
 //! Emulator main engine
 mod clock;
+use log::info;
 use regex::Regex;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -16,6 +17,7 @@ use crate::bus::controller::Controller;
 use crate::bus::interrupt::Interrupt;
 use crate::bus::memory::Memory;
 use crate::cartridge::Cartridge;
+use crate::cpu::instructions::INSTRUCTION_TABLE;
 use crate::cpu::opcodes::OPCODES;
 use crate::cpu::Cpu;
 use crate::ppu::Ppu;
@@ -285,7 +287,7 @@ impl NesEmulator {
             opcode,
             opcode_arg_1,
             opcode_arg_2,
-            OPCODES[&opcode].syntax,
+            INSTRUCTION_TABLE[opcode as usize].get_syntax(&mut self.cpu.borrow_mut()),
             cpu_status.accumulator,
             cpu_status.x_register,
             cpu_status.y_register,
@@ -353,7 +355,7 @@ impl NesEmulator {
             opcode,
             opcode_arg_1,
             opcode_arg_2,
-            OPCODES[&opcode].syntax,
+            INSTRUCTION_TABLE[opcode as usize].get_syntax(&mut self.cpu.borrow_mut()),
             cpu_status.accumulator,
             cpu_status.x_register,
             cpu_status.y_register,

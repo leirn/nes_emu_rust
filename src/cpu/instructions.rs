@@ -1,10 +1,68 @@
 use super::Cpu;
+use std::fmt;
 
 pub struct Instruction {
     pub opcode: u8,
     pub name: InstructionCode,
     pub mode: InstructionMode,
     pub operation: fn(cpu: &mut Cpu) -> InstructionResult,
+}
+
+impl Instruction {
+    pub fn get_syntax(&self, cpu: &mut Cpu) -> String {
+        let instruction_name = self.name.to_string();
+        let argument = match self.mode {
+            InstructionMode::Implied => String::new(),
+            InstructionMode::Immediate => format!("#${:02x}", cpu.get_immediate()).to_uppercase(),
+            InstructionMode::Accumulator => String::from("A"),
+            InstructionMode::Absolute => String::from(format!(
+                "${:04x} = {:02x}",
+                cpu.get_absolute_address(),
+                cpu.get_absolute_value()
+            ))
+            .to_uppercase(),
+            InstructionMode::AbsoluteX => String::from(format!(
+                "${:04x} = {:02x}",
+                cpu.get_absolute_x_address(false),
+                cpu.get_absolute_x_value(false)
+            ))
+            .to_uppercase(),
+            InstructionMode::AbsoluteY => String::from(format!(
+                "${:04x} = {:02x}",
+                cpu.get_absolute_y_address(false),
+                cpu.get_absolute_y_value(false)
+            ))
+            .to_uppercase(),
+            InstructionMode::ZeroPage => String::from(format!(
+                "${:02x} = {:02x}",
+                cpu.get_immediate(),
+                cpu.get_zero_page_value()
+            ))
+            .to_uppercase(),
+            InstructionMode::ZeroPageX => String::from(format!(
+                "${:04x} = {:02x}",
+                cpu.get_zero_page_x_address(),
+                cpu.get_zero_page_x_value()
+            ))
+            .to_uppercase(),
+            InstructionMode::ZeroPageY => String::from(format!(
+                "${:04x} = {:02x}",
+                cpu.get_zero_page_y_address(),
+                cpu.get_zero_page_y_value()
+            ))
+            .to_uppercase(),
+
+            InstructionMode::IndirectX => String::from(format!(
+                "(${:02x},X) @ 80 = {:04x} = {:02x}",
+                cpu.get_immediate(),
+                cpu.get_indirect_x_address(),
+                cpu.get_indirect_x_value(),
+            ))
+            .to_uppercase(),
+            _ => String::new(),
+        };
+        format!("{} {}", instruction_name, argument)
+    }
 }
 
 pub struct InstructionResult {
@@ -30,7 +88,7 @@ pub enum InstructionMode {
     Undefined,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum InstructionCode {
     BRK,
     ADC,
@@ -98,6 +156,12 @@ pub enum InstructionCode {
     SED,
     LSR,
     Unknown,
+}
+
+impl fmt::Display for InstructionCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
@@ -543,16 +607,9 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
     },
     Instruction {
         opcode: 0x22,
-        name: InstructionCode::AND,
-        mode: InstructionMode::Absolute,
-        operation: |cpu| {
-            cpu.accumulator &= cpu.get_absolute_value();
-            cpu.set_flags_nz(cpu.accumulator);
-            InstructionResult {
-                step: 3,
-                remaining_cycles: 4,
-            }
-        },
+        name: InstructionCode::Unknown,
+        mode: InstructionMode::Undefined,
+        operation: |_cpu| panic!("Unknow instruction 0x22"),
     },
     Instruction {
         opcode: 0x23,
@@ -664,6 +721,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
             let carry = cpu.carry as u8;
             cpu.carry = (cpu.accumulator >> 7) != 0;
             cpu.accumulator = (cpu.accumulator << 1) | (carry);
+            cpu.set_flags_nz(cpu.accumulator);
             InstructionResult {
                 step: 1,
                 remaining_cycles: 2,
@@ -694,9 +752,16 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
     },
     Instruction {
         opcode: 0x2d,
-        name: InstructionCode::Unknown,
-        mode: InstructionMode::Undefined,
-        operation: |_cpu| panic!("Unknow instruction 0x2d"),
+        name: InstructionCode::AND,
+        mode: InstructionMode::Absolute,
+        operation: |cpu| {
+            cpu.accumulator &= cpu.get_absolute_value();
+            cpu.set_flags_nz(cpu.accumulator);
+            InstructionResult {
+                step: 3,
+                remaining_cycles: 4,
+            }
+        },
     },
     Instruction {
         opcode: 0x2e,
@@ -1443,7 +1508,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         name: InstructionCode::RRA,
         mode: InstructionMode::ZeroPage,
         operation: |cpu| {
-            (INSTRUCTION_TABLE[0x65].operation)(cpu);
+            (INSTRUCTION_TABLE[0x66].operation)(cpu);
             (INSTRUCTION_TABLE[0x65].operation)(cpu);
             InstructionResult {
                 step: 2,
@@ -1785,9 +1850,16 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
     },
     Instruction {
         opcode: 0x81,
-        name: InstructionCode::Unknown,
-        mode: InstructionMode::Undefined,
-        operation: |_cpu| panic!("Unknow instruction 0x81"),
+        name: InstructionCode::STA,
+        mode: InstructionMode::IndirectX,
+        operation: |cpu| {
+            let address = cpu.get_indirect_x_address();
+            let extra_cycles = cpu.memory.borrow_mut().write_rom(address, cpu.accumulator);
+            InstructionResult {
+                step: 2,
+                remaining_cycles: 6 + extra_cycles,
+            }
+        },
     },
     Instruction {
         opcode: 0x82,

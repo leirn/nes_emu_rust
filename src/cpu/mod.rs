@@ -6,7 +6,7 @@ use crate::bus::memory::Memory;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-mod instructions;
+pub mod instructions;
 pub mod opcodes;
 
 use instructions::INSTRUCTION_TABLE;

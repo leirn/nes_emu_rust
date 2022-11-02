@@ -1,5 +1,0 @@
-tests:
-  nestest:
-    rom_file: test\nestest\nestest.nes
-    log_file: test\nestest\nestest.log
-    entry_point: 0xc000
