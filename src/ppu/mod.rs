@@ -1,27 +1,28 @@
 //! PPU Component of the NES
 //! NSTC implementation
 mod screen;
-use crate::cartridge::Cartridge;
 use crate::bus::interrupt::Interrupt;
+use crate::cartridge::Cartridge;
+use log::info;
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::collections::VecDeque;
+use std::rc::Rc;
 
 pub struct Status {
     pub col: u16,
     pub line: u16,
 }
 
-pub struct Ppu {
-    screen: screen::Screen,
+pub struct Ppu<'a> {
+    screen: screen::Screen<'a>,
     interrupt_bus: Rc<RefCell<Interrupt>>,
     cartridge: Rc<RefCell<Cartridge>>,
 
     // internal registers
-    register_v: u16,    // Current VRAM address, 15 bits
-    register_t: u16,    // Temporary VRAM address, 15 bits. Can be thought of as address of top left onscreen tile
-    register_x: u8,     // Fine X Scroll, 3 bits
-    register_w: bool,   // First or second write toggle, 1 bit
+    register_v: u16,  // Current VRAM address, 15 bits
+    register_t: u16, // Temporary VRAM address, 15 bits. Can be thought of as address of top left onscreen tile
+    register_x: u8,  // Fine X Scroll, 3 bits
+    register_w: bool, // First or second write toggle, 1 bit
 
     // Sprite registers
     primary_oam: [u8; 0x100],
@@ -29,7 +30,7 @@ pub struct Ppu {
     sprite_count: u8,
     sprite_fetcher_count: usize,
     secondary_oam_pointer: usize,
-    is_first_sprite_0:bool,
+    is_first_sprite_0: bool,
 
     // Cycle management
     col: u16,
@@ -60,19 +61,23 @@ pub struct Ppu {
     sprite_x_coordinate_table_register: VecDeque<u8>,
 }
 
-impl Ppu {
+impl Ppu<'_> {
     /// Instantiate the PPU
-    pub fn new(_cartridge: Rc<RefCell<Cartridge>>, _sdl_context: Rc<RefCell<sdl2::Sdl>>, _interrupt_bus: Rc<RefCell<Interrupt>>) -> Ppu {
+    pub fn new(
+        _sdl_context: Rc<RefCell<sdl2::Sdl>>,
+        _cartridge: Rc<RefCell<Cartridge>>,
+        _interrupt_bus: Rc<RefCell<Interrupt>>,
+    ) -> Ppu<'static> {
         Ppu {
-            screen : screen::Screen::new(_sdl_context),
+            screen: screen::Screen::new(_sdl_context),
             cartridge: _cartridge,
             interrupt_bus: _interrupt_bus,
 
             // internal registers
-            register_v: 0,      // Current VRAM address, 15 bits
-            register_t: 0,      // Temporary VRAM address, 15 bits. Can be thought of as address of top left onscreen tile
-            register_x: 0,      // Fine X Scroll, 3 bits
-            register_w: false,  // First or second write toggle, 1 bit
+            register_v: 0,     // Current VRAM address, 15 bits
+            register_t: 0, // Temporary VRAM address, 15 bits. Can be thought of as address of top left onscreen tile
+            register_x: 0, // Fine X Scroll, 3 bits
+            register_w: false, // First or second write toggle, 1 bit
 
             // Sprite registers
             primary_oam: [0; 0x100],
@@ -121,7 +126,7 @@ impl Ppu {
             }
         }
         self.screen.present();
-        println!("PPU started, screen initialized");
+        info!("PPU started, screen initialized");
     }
 
     /// Next function that implement the almost exact PPU rendering workflow
@@ -132,13 +137,17 @@ impl Ppu {
                 if self.col > 0 && self.col < 257 {
                     if self.is_bg_rendering_enabled() {
                         let pixel_color = self.compute_next_pixel();
-                        self.screen.update_pixel(pixel_color, (self.col - 1) as u8, self.line as u8);
+                        self.screen.update_pixel(
+                            (self.col - 1) as u8,
+                            self.line as u8,
+                            pixel_color,
+                        );
                     }
-                    // Nothing happens during Vblank
-                    self.next_background_evaluation();
-                    self.next_sprite_evaluation();
                 }
-            },
+                // Nothing happens during Vblank
+                self.next_background_evaluation();
+                self.next_sprite_evaluation();
+            }
             241u16 => {
                 if self.col == 1 {
                     self.screen.present();
@@ -147,7 +156,7 @@ impl Ppu {
                         self.interrupt_bus.borrow_mut().raise_nmi();
                     }
                 }
-            },
+            }
             261u16 => {
                 if self.col > 0 && self.col < 257 {
                     self.next_background_evaluation();
@@ -159,11 +168,11 @@ impl Ppu {
                     self.is_first_sprite_0 = false;
                     self.clear_sprite_overflow();
                 }
-            },
-            _ => ()
+            }
+            _ => (),
         }
 
-        self.col  = (self.col + 1) % 341;
+        self.col = (self.col + 1) % 341;
         if self.col == 0 {
             // End of scan line
             self.line = (self.line + 1) % 262;
@@ -179,7 +188,8 @@ impl Ppu {
 
     /// Execute next instruction
     pub fn next_background_evaluation(&mut self) {
-        if self.line < 240 || self.line == 261 { // Normal line
+        if self.line < 240 || self.line == 261 {
+            // Normal line
             if self.col > 0 && self.col < 257 {
                 self.load_tile_data();
             }
@@ -203,13 +213,16 @@ impl Ppu {
                 let tile_address = 0x2000 | (self.register_v & 0xfff); // Is it NT or tile address ?
                 let nt_byte = self.read_ppu_memory(tile_address);
                 self.set_nt_byte(nt_byte);
-            },
+            }
             3 => {
                 // read AT Byte for N+2 tile
-                let attribute_address = 0x23c0 | (self.register_v & 0xC00) | ((self.register_v >> 4) & 0x38) | ((self.register_v >> 2) & 0x07);
+                let attribute_address = 0x23c0
+                    | (self.register_v & 0xc00)
+                    | ((self.register_v >> 4) & 0x38)
+                    | ((self.register_v >> 2) & 0x07);
                 let at_byte = self.read_ppu_memory(attribute_address);
                 self.set_at_byte(at_byte);
-            },
+            }
             5 => {
                 // read low BG Tile Byte for N+2 tile
                 let chr_bank = ((self.ppuctrl as u16 >> 4) & 1) * 0x1000;
@@ -217,24 +230,24 @@ impl Ppu {
                 let tile_address = *self.bg_nt_table_register.back().unwrap() as u16;
                 let low_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + fine_y);
                 self.set_low_bg_tile_byte(low_bg_tile_byte);
-            },
+            }
             7 => {
                 // read high BG Tile Byte for N+2 tile
                 let chr_bank = ((self.ppuctrl as u16 >> 4) & 1) * 0x1000;
                 let fine_y = self.register_v >> 12;
                 let tile_address = *self.bg_nt_table_register.back().unwrap() as u16;
-                let high_bg_tile_byte = self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
+                let high_bg_tile_byte =
+                    self.read_ppu_memory(chr_bank + 16 * tile_address + 8 + fine_y);
                 self.set_high_bg_tile_byte(high_bg_tile_byte);
-            },
+            }
             0 => {
                 self.shift_registers();
                 if self.col == 256 {
                     self.inc_vert_v();
-                }
-                else {
+                } else {
                     self.inc_hor_v();
                 }
-            },
+            }
             _ => (),
         }
     }
@@ -260,15 +273,18 @@ impl Ppu {
             let sprite_y_coordinate = self.primary_oam[(4 * self.sprite_count) as usize];
             self.secondary_oam[self.secondary_oam_pointer * 4] = sprite_y_coordinate;
             let sprite_y_coordinate = sprite_y_coordinate as u16;
-            if self.line >= sprite_y_coordinate && self.line < sprite_y_coordinate + 7 {
+            if self.line >= sprite_y_coordinate && self.line < sprite_y_coordinate + 8 {
                 // If first sprite in primary OAM, then sprite 0 to eventually raise in pixel generator
                 if self.sprite_count == 0 {
                     self.is_first_sprite_0 = true;
                 }
                 // Le sprite traverse la scanline, on le copy dans  le secondary oam
-                self.secondary_oam[self.secondary_oam_pointer * 4 + 1] = self.primary_oam[(4 * self.sprite_count + 1) as usize];
-                self.secondary_oam[self.secondary_oam_pointer * 4 + 2] = self.primary_oam[(4 * self.sprite_count + 2) as usize];
-                self.secondary_oam[self.secondary_oam_pointer * 4 + 3] = self.primary_oam[(4 * self.sprite_count + 3) as usize];
+                self.secondary_oam[self.secondary_oam_pointer * 4 + 1] =
+                    self.primary_oam[(4 * self.sprite_count + 1) as usize];
+                self.secondary_oam[self.secondary_oam_pointer * 4 + 2] =
+                    self.primary_oam[(4 * self.sprite_count + 2) as usize];
+                self.secondary_oam[self.secondary_oam_pointer * 4 + 3] =
+                    self.primary_oam[(4 * self.sprite_count + 3) as usize];
                 self.secondary_oam_pointer += 1;
             }
             self.sprite_count += 1;
@@ -279,7 +295,10 @@ impl Ppu {
             self.clear_sprite_registers();
         }
 
-        if self.sprite_fetcher_count < self.secondary_oam_pointer && self.col > 256 && self.col < 321 {
+        if self.sprite_fetcher_count < self.secondary_oam_pointer
+            && self.col > 256
+            && self.col < 321
+        {
             // During those cycles sprites are actually fetched for rendering in the next line
             match self.col % 8 {
                 // TODO : Split in 1, 3, 5, 7 to closer respect the real NES process
@@ -287,15 +306,15 @@ impl Ppu {
                 3 => {
                     let attribute = self.secondary_oam[self.sprite_fetcher_count * 4 + 2];
                     self.sprite_attribute_table_register.push_back(attribute);
-                },
+                }
                 5 => {
                     // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
-                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4] as u16;
-                    let tile_address    = self.secondary_oam[self.sprite_fetcher_count * 4 + 1] as u16;
-                    let attribute       = *self.sprite_attribute_table_register.back().unwrap();
-                    let x_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4 + 3];
+                    let y_coordinate = self.secondary_oam[self.sprite_fetcher_count * 4] as u16;
+                    let tile_address = self.secondary_oam[self.sprite_fetcher_count * 4 + 1] as u16;
+                    let attribute = *self.sprite_attribute_table_register.back().unwrap();
+                    let x_coordinate = self.secondary_oam[self.sprite_fetcher_count * 4 + 3];
 
-                    let mut fine_y      = self.line - y_coordinate;
+                    let mut fine_y = self.line - y_coordinate;
 
                     // Flipping
                     let flip_horizontally = (attribute >> 6) & 1 != 0;
@@ -310,19 +329,22 @@ impl Ppu {
                     }
 
                     let chr_bank = ((self.ppuctrl as u16 >> 3) & 1) * 0x1000;
-                    let low_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16u16 * tile_address + fine_y + flipping_offset);
+                    let low_sprite_tile_byte = self.read_ppu_memory(
+                        chr_bank + 16u16 * tile_address + fine_y + flipping_offset,
+                    );
 
-                    self.sprite_x_coordinate_table_register.push_back(x_coordinate);
-                    self.sprite_low_byte_table_register.push_back(low_sprite_tile_byte);
-                },
+                    self.sprite_x_coordinate_table_register
+                        .push_back(x_coordinate);
+                    self.sprite_low_byte_table_register
+                        .push_back(low_sprite_tile_byte);
+                }
                 7 => {
-
                     // Fetch sprite low and high byte at the same time on 7 instead of spreading over 8 cycles
-                    let y_coordinate    = self.secondary_oam[self.sprite_fetcher_count * 4] as u16;
-                    let tile_address    = self.secondary_oam[self.sprite_fetcher_count * 4 + 1] as u16;
-                    let attribute       = *self.sprite_attribute_table_register.back().unwrap();
+                    let y_coordinate = self.secondary_oam[self.sprite_fetcher_count * 4] as u16;
+                    let tile_address = self.secondary_oam[self.sprite_fetcher_count * 4 + 1] as u16;
+                    let attribute = *self.sprite_attribute_table_register.back().unwrap();
 
-                    let mut fine_y      = self.line - y_coordinate;
+                    let mut fine_y = self.line - y_coordinate;
 
                     // Flipping
                     let flip_horizontally = (attribute >> 6) & 1 != 0;
@@ -339,12 +361,15 @@ impl Ppu {
                         flipping_offset = 0;
                     }
 
-                    let high_sprite_tile_byte = self.read_ppu_memory(chr_bank + 16u16 * tile_address + fine_y + flipping_offset);
-                    self.sprite_high_byte_table_register.push_back(high_sprite_tile_byte);
+                    let high_sprite_tile_byte = self.read_ppu_memory(
+                        chr_bank + 16u16 * tile_address + fine_y + flipping_offset,
+                    );
+                    self.sprite_high_byte_table_register
+                        .push_back(high_sprite_tile_byte);
 
                     self.sprite_fetcher_count += 1;
-                },
-                _ => ()
+                }
+                _ => (),
             }
         }
     }
@@ -361,12 +386,13 @@ impl Ppu {
             0..=0x1fff => self.cartridge.borrow_mut().read_chr_rom(address),
             0x2000..=0x2fff => self.vram[(address - 0x2000) as usize],
             0x3000..=0x3eff => self.vram[(address - 0x3000) as usize],
-            0x3f00..=0x3fff => {let mut palette_address = 0;
+            0x3f00..=0x3fff => {
+                let mut palette_address = 0;
                 if address % 4 != 0 {
                     palette_address = address % 0x20;
                 }
                 self.palette_vram[palette_address as usize]
-            },
+            }
             _ => panic!("Out of PPU memory range, address : {:04x}", address),
         }
     }
@@ -383,12 +409,13 @@ impl Ppu {
             0..=0x1fff => self.cartridge.borrow_mut().write_chr_rom(address, value),
             0x2000..=0x2fff => self.vram[(address - 0x2000) as usize] = value,
             0x3000..=0x3eff => self.vram[(address - 0x3000) as usize] = value,
-            0x3f00..=0x3fff => {let mut palette_address = 0;
+            0x3f00..=0x3fff => {
+                let mut palette_address = 0;
                 if address % 4 != 0 {
                     palette_address = address % 0x20;
                 }
                 self.palette_vram[palette_address as usize] = value
-            },
+            }
             _ => panic!("Out of PPU memory range, address : {:04x}", address),
         }
     }
@@ -409,12 +436,12 @@ impl Ppu {
 
     /// Read PPU internal register at 0x2007 memory address
     pub fn read_0x2007(&mut self) -> u8 {
-        let mut value: u8;
-        if self.ppuaddr % 0x4000 < 0x3f00 { // Delayed buffering requiring dummy read
+        let value: u8;
+        if self.ppuaddr % 0x4000 < 0x3f00 {
+            // Delayed buffering requiring dummy read
             value = self.ppudata;
             self.ppudata = self.read_ppu_memory(self.ppuaddr % 0x4000); // Address above 0x3fff are mirrored down
-        }
-        else {
+        } else {
             self.ppudata = self.read_ppu_memory(self.ppuaddr % 0x4000); // Address above 0x3fff are mirrored down
             value = self.ppudata;
         }
@@ -447,26 +474,27 @@ impl Ppu {
 
     /// Update PPU internal register when CPU write 0x2005 memory address
     pub fn write_0x2005(&mut self, value: u8) {
-        self.ppuscroll = (self.ppuscroll << 8 ) + value as u16;
+        self.ppuscroll = (self.ppuscroll << 8) + value as u16;
         if !self.register_w {
             self.register_t = (self.register_t & 0b111111111100000) | ((value as u16) >> 5);
             self.register_x = value & 0b111;
             self.register_w = true;
-        }
-        else {
-            self.register_t = (self.register_t & 0b000110000011111) | ((value as u16 & 0b11111000) << 2) | ((value as u16 & 0b111) << 12);
+        } else {
+            self.register_t = (self.register_t & 0b000110000011111)
+                | ((value as u16 & 0b11111000) << 2)
+                | ((value as u16 & 0b111) << 12);
             self.register_w = false;
         }
     }
 
     /// Update PPU internal register when CPU write 0x2006 memory address
     pub fn write_0x2006(&mut self, value: u8) {
-        self.ppuaddr = (self.ppuaddr << 8 ) + value as u16;
+        self.ppuaddr = (self.ppuaddr << 8) + value as u16;
         if !self.register_w {
-            self.register_t = (self.register_t & 0b000000011111111) | ((value as u16 & 0b00111111) << 8);
+            self.register_t =
+                (self.register_t & 0b000000011111111) | ((value as u16 & 0b00111111) << 8);
             self.register_w = true;
-        }
-        else {
+        } else {
             self.register_t = (self.register_t & 0b111111100000000) | value as u16;
             self.register_v = self.register_t;
             self.register_w = false;
@@ -483,8 +511,7 @@ impl Ppu {
     fn read_or_write_0x2007(&mut self) {
         if !self.is_rendering_enabled() {
             self.register_v += self.get_ram_step_forward();
-        }
-        else {
+        } else {
             self.inc_vert_v();
             self.inc_hor_v();
         }
@@ -503,10 +530,9 @@ impl Ppu {
     /// Implementation base on nevdev PPU_scrolling#Wrapping around
     fn inc_hor_v(&mut self) {
         if (self.register_v & 0x1f) == 31 {
-            self.register_v &= 0b111111111100000;   // hor_v = 0
-            self.register_v ^= 0x400;               // switch horizontal nametable
-        }
-        else {
+            self.register_v &= 0b111111111100000; // hor_v = 0
+            self.register_v ^= 0x400; // switch horizontal nametable
+        } else {
             self.register_v += 1;
         }
     }
@@ -517,18 +543,15 @@ impl Ppu {
     fn inc_vert_v(&mut self) {
         if (self.register_v & 0x7000) != 0x7000 {
             self.register_v += 0x1000;
-        }
-        else {
-            self.register_v &= 0xfff;                                       // Fine Y = 0
-            let mut coarse_y = (self.register_v & 0x3e0 ) >> 5;     // coarse_y = vert_v
+        } else {
+            self.register_v &= 0xfff; // Fine Y = 0
+            let mut coarse_y = (self.register_v & 0x3e0) >> 5; // coarse_y = vert_v
             if coarse_y == 29 {
                 coarse_y = 0;
-                self.register_v ^= 0x800;                                   // switch vertical nametable
-            }
-            else if coarse_y == 31 {
+                self.register_v ^= 0x800; // switch vertical nametable
+            } else if coarse_y == 31 {
                 coarse_y = 0;
-            }
-            else {
+            } else {
                 coarse_y += 1;
             }
             self.register_v = (self.register_v & 0b111110000011111) | (coarse_y << 5);
@@ -537,12 +560,14 @@ impl Ppu {
 
     /// Copy hor part of t to v
     fn copy_hor_t_to_hor_v(&mut self) {
-        self.register_v = (self.register_v & 0b111101111100000) | (self.register_t & 0b000010000011111);
+        self.register_v =
+            (self.register_v & 0b111101111100000) | (self.register_t & 0b000010000011111);
     }
 
     /// Copy hor part of t to v///
     fn copy_vert_t_to_vert_v(&mut self) {
-        self.register_v = (self.register_v & 0b000010000011111) | (self.register_t & 0b111101111100000);
+        self.register_v =
+            (self.register_v & 0b000010000011111) | (self.register_t & 0b111101111100000);
     }
 
     /// Return 1 is rendering is enabled, 0 otherwise
@@ -562,7 +587,11 @@ impl Ppu {
 
     /// RAM step foward on bus access depending on PPUCTRL bu 1
     fn get_ram_step_forward(&self) -> u16 {
-        if (self.ppuctrl >> 2) & 1 == 0 {1} else {0x20}
+        if (self.ppuctrl >> 2) & 1 == 0 {
+            1
+        } else {
+            0x20
+        }
     }
 
     /// RAM step foward on bus access depending on PPUCTRL bu 1
@@ -581,7 +610,7 @@ impl Ppu {
 
     /// Clear vblank bit in ppustatus register
     fn clear_vblank(&mut self) {
-        self.ppustatus &= 0b11111111;
+        self.ppustatus &= 0b01111111;
     }
 
     /// Set sprite 0 bit in ppustatus register
@@ -611,15 +640,21 @@ impl Ppu {
             line: self.line,
         }
     }
-}
 
-impl Ppu {
     // Return a color_index which is a palette index
     pub fn compute_next_pixel(&mut self) -> u8 {
         let (bg_color_code, bg_color_palette) = self.compute_bg_pixel();
-        let (sprite_color_code, sprite_color_palette, priority, sprite_id) = self.compute_sprite_pixel();
+        let (sprite_color_code, sprite_color_palette, priority, sprite_id) =
+            self.compute_sprite_pixel();
 
-        self.multiplexer_decision(bg_color_code, bg_color_palette, sprite_color_code, sprite_color_palette, priority, sprite_id == 0)
+        self.multiplexer_decision(
+            bg_color_code,
+            bg_color_palette,
+            sprite_color_code,
+            sprite_color_palette,
+            priority,
+            sprite_id == 0,
+        )
     }
 
     /// Compute the elements for the bg pixel
@@ -631,18 +666,20 @@ impl Ppu {
             fine_x -= 8;
         }
 
-        let bit1 = (self.bg_low_byte_table_register[register_level] >> (7-fine_x)) & 1;
-        let bit2 = (self.bg_high_byte_table_register[register_level] >> (7-fine_x)) & 1;
+        let bit1 = (self.bg_low_byte_table_register[register_level] >> (7 - fine_x)) & 1;
+        let bit2 = (self.bg_high_byte_table_register[register_level] >> (7 - fine_x)) & 1;
         let bg_color_code = bit1 | (bit2 << 1);
 
         let attribute = self.bg_attribute_table_register[register_level];
 
         // la position réelle x et y dépendent du coin en haut à gauche défini par register_t + fine x ou y  + la position réelle sur l'écran
         let shift_x = (self.register_t & 0x1f) + (self.col - 1) + self.register_x as u16;
-        let shift_y = ((self.register_t & 0x3e0) >> 5) + self.line + ((self.register_t & 0x7000) >> 12);
+        let shift_y =
+            ((self.register_t & 0x3e0) >> 5) + self.line + ((self.register_t & 0x7000) >> 12);
 
         // Compute which zone to select in the attribute byte
-        let shift = ((if shift_x % 32 > 15 {1} else {0}) + (if shift_y % 32 > 15 {2} else {0})) * 2;
+        let shift =
+            ((if shift_x % 32 > 15 { 1 } else { 0 }) + (if shift_y % 32 > 15 { 2 } else { 0 })) * 2;
         let bg_color_palette = (attribute >> shift) & 0b11;
         (bg_color_code, bg_color_palette)
     }
@@ -654,11 +691,11 @@ impl Ppu {
             // TODO : self.col must only wrok where no scrolling, use register_v instead ?
             if self.col >= sprite_x && self.col < sprite_x + 8 {
                 let x_offset = self.col % 8;
-                let bit1 = (self.sprite_low_byte_table_register[i as usize] >> (7-x_offset)) & 1;
-                let bit2 = (self.sprite_high_byte_table_register[i as usize] >> (7-x_offset)) & 1;
+                let bit1 = (self.sprite_low_byte_table_register[i] >> (7 - x_offset)) & 1;
+                let bit2 = (self.sprite_high_byte_table_register[i] >> (7 - x_offset)) & 1;
                 let sprite_color_code = bit1 | (bit2 << 1);
 
-                let attribute = self.sprite_attribute_table_register[i as usize];
+                let attribute = self.sprite_attribute_table_register[i];
                 let priority = (attribute >> 5) & 0x1;
                 let sprite_color_palette = attribute & 0b11;
 
@@ -669,7 +706,15 @@ impl Ppu {
     }
 
     /// Implement PPU Priority Multiplexer decision table
-    fn multiplexer_decision(&mut self, bg_color_code: u8, bg_color_palette: u8, sprite_color_code: u8, sprite_color_palette: u8, priority: u8, is_sprite_0: bool) -> u8 {
+    fn multiplexer_decision(
+        &mut self,
+        bg_color_code: u8,
+        bg_color_palette: u8,
+        sprite_color_code: u8,
+        sprite_color_palette: u8,
+        priority: u8,
+        is_sprite_0: bool,
+    ) -> u8 {
         let bg_palette_address = bg_color_palette << 2;
         let sprite_palette_address = sprite_color_palette << 2;
 
@@ -677,10 +722,12 @@ impl Ppu {
             return self.palette_vram[0]; // Palette BG Color
         }
         if bg_color_code == 0 && sprite_color_code > 0 {
-            return self.palette_vram[(0x10 + sprite_palette_address + sprite_color_code) as usize]; // Sprite color > 0
+            return self.palette_vram[(0x10 + sprite_palette_address + sprite_color_code) as usize];
+            // Sprite color > 0
         }
         if sprite_color_code == 0 {
-            return self.palette_vram[(bg_palette_address + bg_color_code) as usize]; // bg color
+            return self.palette_vram[(bg_palette_address + bg_color_code) as usize];
+            // bg color
         }
         // BG color > 0 and Sprite color > 0 --> Set sprite_0
         // TODO : check that we are on sprite 0 : is it the right method ?
@@ -727,6 +774,79 @@ impl Ppu {
 
     /// Set high_bg_tile_byte into registers
     pub fn set_high_bg_tile_byte(&mut self, high_bg_tile_byte: u8) {
-        self.bg_high_byte_table_register.push_back(high_bg_tile_byte);
+        self.bg_high_byte_table_register
+            .push_back(high_bg_tile_byte);
+    }
+
+    pub fn get_ppustatus_as_string(&self) -> String {
+        format!(
+            "P_OAM:{:02x},S_OAM:{:02x}",
+            self.get_xor_primary_oam(),
+            self.get_xor_secondary_oam()
+        )
+    }
+
+    fn get_xor_primary_oam(&self) -> u8 {
+        let mut xor = 0;
+        for i in self.primary_oam.iter() {
+            xor ^= i;
+        }
+        xor
+    }
+
+    fn get_xor_secondary_oam(&self) -> u8 {
+        let mut xor = 0;
+        for i in self.secondary_oam.iter() {
+            xor ^= i;
+        }
+        xor
+    }
+
+    pub fn print_primary_oam(&self) {
+        println!("Primary OAM");
+    }
+
+    pub fn print_secondary_oam(&self) {
+        println!("Secondary OAM");
+        self.sub_print_oam(0);
+        self.sub_print_oam(0x20);
+    }
+    fn sub_print_oam(&self, address: usize) {
+        println!("{:04x}:{:04x}    {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x}",
+            address,
+            address + 0x1f,
+            self.secondary_oam[address],
+            self.secondary_oam[address+1],
+            self.secondary_oam[address+2],
+            self.secondary_oam[address+3],
+            self.secondary_oam[address+4],
+            self.secondary_oam[address+5],
+            self.secondary_oam[address+6],
+            self.secondary_oam[address+7],
+            self.secondary_oam[address+8],
+            self.secondary_oam[address+9],
+            self.secondary_oam[address+10],
+            self.secondary_oam[address+11],
+            self.secondary_oam[address+12],
+            self.secondary_oam[address+13],
+            self.secondary_oam[address+14],
+            self.secondary_oam[address+15],
+            self.secondary_oam[address+16],
+            self.secondary_oam[address+17],
+            self.secondary_oam[address+18],
+            self.secondary_oam[address+19],
+            self.secondary_oam[address+20],
+            self.secondary_oam[address+21],
+            self.secondary_oam[address+22],
+            self.secondary_oam[address+23],
+            self.secondary_oam[address+24],
+            self.secondary_oam[address+25],
+            self.secondary_oam[address+26],
+            self.secondary_oam[address+27],
+            self.secondary_oam[address+28],
+            self.secondary_oam[address+29],
+            self.secondary_oam[address+30],
+            self.secondary_oam[address+31],
+        );
     }
 }

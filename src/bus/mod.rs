@@ -1,3 +1,3 @@
-pub mod memory;
-pub mod interrupt;
 pub mod controller;
+pub mod interrupt;
+pub mod memory;

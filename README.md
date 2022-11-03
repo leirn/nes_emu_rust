@@ -12,3 +12,12 @@ Current status:
 - APU : not started
 - Inputs : Just started, not pluged yet. 20% done
 - Mappers : only mapper 0 hardcoded
+
+
+# Setup development environment
+
+- Go to latest SDL releases : https://github.com/libsdl-org/SDL/releases/tag/release-2.24.0
+- Download SDL2-devel-2.x.y-VC.zip
+- Copy lib/x64/*.lib into C:\Users\\{Your Username}\\.rustup\toolchains\\{current toolchain}\lib\rustlib\\{current toolchain}\lib
+
+More information on https://crates.io/crates/sdl2

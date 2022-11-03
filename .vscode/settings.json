@@ -1,4 +1,7 @@
 {
-    "editor.defaultFormatter": "rust-lang.rust",
-    "files.trimTrailingWhitespace": true
+    "files.trimTrailingWhitespace": true,
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer",
+        "editor.formatOnSave": true
+    }
 }
