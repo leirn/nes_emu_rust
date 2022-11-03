@@ -8,10 +8,10 @@ use std::rc::Rc;
 
 use super::interrupt::Interrupt;
 
-pub struct Bus {
+pub struct Bus<'a> {
     internal_ram: [u8; 0x800],
     pub apu: Apu,
-    pub ppu: Ppu,
+    pub ppu: Ppu<'a>,
     pub controller_1: Controller,
     pub controller_2: Controller,
     controller_1_status: u8,
@@ -20,9 +20,12 @@ pub struct Bus {
     pub interrupt: Rc<RefCell<Interrupt>>,
 }
 
-impl Bus {
+impl Bus<'_> {
     /// Instantiate new Memory component
-    pub fn new(_sdl_context: Rc<RefCell<sdl2::Sdl>>, _cartridge: Rc<RefCell<Cartridge>>) -> Bus {
+    pub fn new(
+        _sdl_context: Rc<RefCell<sdl2::Sdl>>,
+        _cartridge: Rc<RefCell<Cartridge>>,
+    ) -> Bus<'static> {
         let _interrupt = Rc::new(RefCell::new(Interrupt::new()));
         Bus {
             internal_ram: [0; 0x800], // 2kB or internal RAM
