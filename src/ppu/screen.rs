@@ -6,8 +6,6 @@ use std::rc::Rc;
 
 pub struct Screen {
     scale: u32,
-    //video_subsystem: sdl2::VideoSubsystem,
-    //window: sdl2::video::Window,
     canvas: sdl2::render::Canvas<sdl2::video::Window>,
 }
 

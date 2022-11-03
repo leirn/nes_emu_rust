@@ -2,7 +2,8 @@
 
 // CPU implementation exemple :https://github.com/takahirox/riscv-rust/blob/master/src/cpu.rs
 
-use crate::bus::memory::Memory;
+use crate::bus::memory::Bus;
+use crate::cartridge::Cartridge;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -23,7 +24,7 @@ pub struct Status {
 
 pub struct Cpu {
     // Access to BUS
-    memory: Rc<RefCell<Memory>>,
+    pub bus: Bus,
 
     // Registers
     accumulator: u8,
@@ -49,9 +50,9 @@ pub struct Cpu {
 }
 
 impl Cpu {
-    pub fn new(_memory: Rc<RefCell<Memory>>) -> Cpu {
+    pub fn new(_sdl_context: Rc<RefCell<sdl2::Sdl>>, _cartridge: Rc<RefCell<Cartridge>>) -> Cpu {
         Cpu {
-            memory: _memory,
+            bus: Bus::new(_sdl_context, _cartridge),
             accumulator: 0,
             x_register: 0,
             y_register: 0,
@@ -77,8 +78,7 @@ impl Cpu {
 
         // Default is equivalent to JMP ($FFFC)
         if entry_point == None {
-            self.program_counter =
-                entry_point.unwrap_or_else(|| self.memory.borrow_mut().read_rom_16(0xfffc));
+            self.program_counter = entry_point.unwrap_or_else(|| self.bus.read_rom_16(0xfffc));
         } else {
             self.program_counter = entry_point.unwrap();
         }
@@ -101,7 +101,7 @@ impl Cpu {
             return;
         }
 
-        let opcode = self.memory.borrow_mut().read_rom(self.program_counter) as usize;
+        let opcode = self.bus.read_rom(self.program_counter) as usize;
         let cpu_instruction = &INSTRUCTION_TABLE[opcode];
 
         let instruction_result = (cpu_instruction.operation)(self);
@@ -141,7 +141,7 @@ impl Cpu {
 
         self.interrupt = false;
 
-        self.program_counter = self.memory.borrow_mut().read_rom_16(address);
+        self.program_counter = self.bus.read_rom_16(address);
         self.remaining_cycles = 7 - 1; // do not count current cycle twice
         self.total_cycles += 7
     }
@@ -176,8 +176,7 @@ impl Cpu {
 
     /// Push value into stack
     fn push(&mut self, value: u8) {
-        self.memory
-            .borrow_mut()
+        self.bus
             .write_rom(0x0100 | (self.stack_pointer as u16), value);
         self.stack_pointer -= 1; // Will eventually overflow on purpose
     }
@@ -185,20 +184,18 @@ impl Cpu {
     /// Pop/Pull value from stack
     fn pull(&mut self) -> u8 {
         self.stack_pointer += 1; // Will eventually overflow on purpose
-        self.memory
-            .borrow_mut()
-            .read_rom(0x0100 | (self.stack_pointer as u16))
+        self.bus.read_rom(0x0100 | (self.stack_pointer as u16))
     }
 
     /// Get 8 bit immediate value on PC + 1
     fn get_immediate(&mut self) -> u8 {
-        self.memory.borrow_mut().read_rom(self.program_counter + 1)
+        self.bus.read_rom(self.program_counter + 1)
     }
 
     /// Write val into Zero Page memory. Address is given as opcode 1-byte argument
     fn set_zero_page(&mut self, value: u8) {
         let address = self.get_zero_page_address();
-        self.memory.borrow_mut().write_rom(address, value);
+        self.bus.write_rom(address, value);
     }
 
     /// Get ZeroPage address to be used for current opcode. Alias to get_immediate
@@ -209,75 +206,70 @@ impl Cpu {
     /// Get val from Zero Page MEMORY. Address is given as opcode 1-byte argument
     fn get_zero_page_value(&mut self) -> u8 {
         let address = self.get_immediate() as u16;
-        self.memory.borrow_mut().read_rom(address)
+        self.bus.read_rom(address)
     }
 
     /// Write val into Zero Page MEMORY. Address is given as opcode 1-byte argument and X register
     fn set_zero_page_x(&mut self, value: u8) {
         let address = self.get_zero_page_x_address();
-        self.memory.borrow_mut().write_rom(address, value);
+        self.bus.write_rom(address, value);
     }
 
     /// Get ZeroPage address to be used for current opcode and X register
     fn get_zero_page_x_address(&mut self) -> u16 {
-        (self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.x_register) as u16
+        (self.bus.read_rom(self.program_counter + 1) + self.x_register) as u16
     }
 
     /// Get value at ZeroPage address to be used for current opcode and X register
     fn get_zero_page_x_value(&mut self) -> u8 {
         let address = self.get_zero_page_x_address();
-        self.memory.borrow_mut().read_rom(address)
+        self.bus.read_rom(address)
     }
 
     /// Write val into Zero Page MEMORY. Address is given as opcode 1-byte argument and Y register
     fn set_zero_page_y(&mut self, value: u8) {
         let address = self.get_zero_page_y_address();
-        self.memory.borrow_mut().write_rom(address, value);
+        self.bus.write_rom(address, value);
     }
 
     /// Get ZeroPage address to be used for current opcode and Y register
     fn get_zero_page_y_address(&mut self) -> u16 {
-        (self.memory.borrow_mut().read_rom(self.program_counter + 1) + self.y_register) as u16
+        (self.bus.read_rom(self.program_counter + 1) + self.y_register) as u16
     }
 
     /// Get value at ZeroPage address to be used for current opcode and Y register
     fn get_zero_page_y_value(&mut self) -> u8 {
         let address = self.get_zero_page_y_address();
-        self.memory.borrow_mut().read_rom(address)
+        self.bus.read_rom(address)
     }
 
     /// Write val into MEMORY. Address is given as opcode 2-byte argument
     fn set_absolute(&mut self, value: u8) {
         let address = self.get_absolute_address();
-        self.memory.borrow_mut().write_rom(address, value);
+        self.bus.write_rom(address, value);
     }
 
     /// Get address given as opcode 2-byte argument
     fn get_absolute_address(&mut self) -> u16 {
-        self.memory
-            .borrow_mut()
-            .read_rom_16(self.program_counter + 1)
+        self.bus.read_rom_16(self.program_counter + 1)
     }
 
     /// Get val from MEMORY. Address is given as opcode 2-byte argument
     fn get_absolute_value(&mut self) -> u8 {
         let address = self.get_absolute_address();
-        self.memory.borrow_mut().read_rom(address)
+        self.bus.read_rom(address)
     }
 
     /// Write val into MEMORY. Address is given as opcode 2-byte argument and X register
     /// additionnal is boolean to fnine if this instruction will require extra cycles on page crossing
     fn set_absolute_x(&mut self, value: u8, is_additionnal: bool) {
         let address = self.get_absolute_x_address(is_additionnal);
-        self.memory.borrow_mut().write_rom(address, value);
+        self.bus.write_rom(address, value);
     }
 
     /// Get address given as opcode 2-byte argument and X register
     fn get_absolute_x_address(&mut self, is_additionnal: bool) -> u16 {
-        let address = self
-            .memory
-            .borrow_mut()
-            .read_rom_16(self.program_counter + 1);
+        let address = self.bus.read_rom_16(self.program_counter + 1);
         let target_address = address + self.x_register as u16;
         if is_additionnal && address & 0xFF00 != target_address & 0xff00 {
             self.additionnal_cycles += 1;
@@ -288,21 +280,18 @@ impl Cpu {
     /// Get val from MEMORY. Address is given as opcode 2-byte argument and X register
     fn get_absolute_x_value(&mut self, is_additionnal: bool) -> u8 {
         let address = self.get_absolute_x_address(is_additionnal);
-        self.memory.borrow_mut().read_rom(address)
+        self.bus.read_rom(address)
     }
 
     /// Write val into MEMORY. Address is given as opcode 2-byte argument and Y register
     fn set_absolute_y(&mut self, value: u8, is_additionnal: bool) {
         let address = self.get_absolute_y_address(is_additionnal);
-        self.memory.borrow_mut().write_rom(address, value);
+        self.bus.write_rom(address, value);
     }
 
     /// Get address given as opcode 2-byte argument and Y register
     fn get_absolute_y_address(&mut self, is_additionnal: bool) -> u16 {
-        let address = self
-            .memory
-            .borrow_mut()
-            .read_rom_16(self.program_counter + 1);
+        let address = self.bus.read_rom_16(self.program_counter + 1);
         let target_address = address + self.y_register as u16;
         if is_additionnal && address & 0xff00 != target_address & 0xff00 {
             self.additionnal_cycles += 1;
@@ -313,36 +302,31 @@ impl Cpu {
     /// Get val from MEMORY. Address is given as opcode 2-byte argument and Y register
     fn get_absolute_y_value(&mut self, is_additionnal: bool) -> u8 {
         let address = self.get_absolute_y_address(is_additionnal);
-        self.memory.borrow_mut().read_rom(address)
+        self.bus.read_rom(address)
     }
 
     /// Get indirect address given as opcode 2-byte argument and X register
     fn get_indirect_x_address(&mut self) -> u16 {
         let address = self.get_zero_page_x_address();
-        self.memory
-            .borrow_mut()
-            .read_rom_16_no_crossing_page(address)
+        self.bus.read_rom_16_no_crossing_page(address)
     }
 
     /// Get val from MEMORY. Indirect address is given as opcode 2-byte argument and X register
     fn get_indirect_x_value(&mut self) -> u8 {
         let address = self.get_indirect_x_address();
-        self.memory.borrow_mut().read_rom(address)
+        self.bus.read_rom(address)
     }
 
     /// Write val into MEMORY. Indirect address is given as opcode 2-byte argument and X register///
     fn set_indirect_x(&mut self, value: u8) {
         let address = self.get_indirect_x_address();
-        self.memory.borrow_mut().write_rom(address, value);
+        self.bus.write_rom(address, value);
     }
 
     /// Get indirect address given as opcode 2-byte argument and Y register
     fn get_indirect_y_address(&mut self, is_additionnal: bool) -> u16 {
         let address = self.get_zero_page_address();
-        let address = self
-            .memory
-            .borrow_mut()
-            .read_rom_16_no_crossing_page(address);
+        let address = self.bus.read_rom_16_no_crossing_page(address);
         let target_address = address + self.y_register as u16;
         if is_additionnal && address & 0xff00 != target_address & 0xff00 {
             self.additionnal_cycles += 1;
@@ -353,13 +337,13 @@ impl Cpu {
     /// Get val from MEMORY. Indirect address is given as opcode 2-byte argument and Y register
     fn get_indirect_y_value(&mut self, is_additionnal: bool) -> u8 {
         let address = self.get_indirect_y_address(is_additionnal);
-        self.memory.borrow_mut().read_rom(address)
+        self.bus.read_rom(address)
     }
 
     /// Write val into MEMORY. Indirect address is given as opcode 2-byte argument and Y register
     fn set_indirect_y(&mut self, value: u8, is_additionnal: bool) {
         let address = self.get_indirect_y_address(is_additionnal);
-        self.memory.borrow_mut().write_rom(address, value);
+        self.bus.write_rom(address, value);
     }
 
     /// Sets flags N and Z according to value

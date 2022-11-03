@@ -174,7 +174,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
             cpu.push((cpu.program_counter >> 8) as u8);
             cpu.push((cpu.program_counter & 0xff) as u8);
             cpu.push(cpu.get_status_register() | (1 << 4));
-            cpu.program_counter = cpu.memory.borrow_mut().read_rom_16(0xfffe);
+            cpu.program_counter = cpu.bus.read_rom_16(0xfffe);
             InstructionResult {
                 step: 0,
                 remaining_cycles: 7,
@@ -1573,7 +1573,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
                 // Strange behaviour in nestest.nes where direct jump to re-aligned address where address at end of page
                 address += 1;
             } else {
-                address = cpu.memory.borrow_mut().read_rom_16(address);
+                address = cpu.bus.read_rom_16(address);
             }
             cpu.program_counter = address;
             InstructionResult {
@@ -1854,7 +1854,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::IndirectX,
         operation: |cpu| {
             let address = cpu.get_indirect_x_address();
-            let extra_cycles = cpu.memory.borrow_mut().write_rom(address, cpu.accumulator);
+            let extra_cycles = cpu.bus.write_rom(address, cpu.accumulator);
             InstructionResult {
                 step: 2,
                 remaining_cycles: 6 + extra_cycles,
@@ -1889,7 +1889,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::ZeroPage,
         operation: |cpu| {
             let address = cpu.get_zero_page_address();
-            cpu.memory.borrow_mut().write_rom(address, cpu.y_register);
+            cpu.bus.write_rom(address, cpu.y_register);
             InstructionResult {
                 step: 2,
                 remaining_cycles: 3,
@@ -1902,7 +1902,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::ZeroPage,
         operation: |cpu| {
             let address = cpu.get_zero_page_address();
-            let extra_cycles = cpu.memory.borrow_mut().write_rom(address, cpu.accumulator);
+            let extra_cycles = cpu.bus.write_rom(address, cpu.accumulator);
             InstructionResult {
                 step: 2,
                 remaining_cycles: 3 + extra_cycles,
@@ -1915,7 +1915,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::ZeroPage,
         operation: |cpu| {
             let address = cpu.get_zero_page_address();
-            cpu.memory.borrow_mut().write_rom(address, cpu.x_register);
+            cpu.bus.write_rom(address, cpu.x_register);
             InstructionResult {
                 step: 2,
                 remaining_cycles: 3,
@@ -1982,7 +1982,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::Absolute,
         operation: |cpu| {
             let address = cpu.get_absolute_address();
-            cpu.memory.borrow_mut().write_rom(address, cpu.y_register);
+            cpu.bus.write_rom(address, cpu.y_register);
             InstructionResult {
                 step: 3,
                 remaining_cycles: 4,
@@ -1995,7 +1995,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::Absolute,
         operation: |cpu| {
             let address = cpu.get_absolute_address();
-            let extra_cycles = cpu.memory.borrow_mut().write_rom(address, cpu.accumulator);
+            let extra_cycles = cpu.bus.write_rom(address, cpu.accumulator);
             InstructionResult {
                 step: 3,
                 remaining_cycles: 4 + extra_cycles,
@@ -2008,7 +2008,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::Absolute,
         operation: |cpu| {
             let address = cpu.get_absolute_address();
-            cpu.memory.borrow_mut().write_rom(address, cpu.x_register);
+            cpu.bus.write_rom(address, cpu.x_register);
             InstructionResult {
                 step: 3,
                 remaining_cycles: 4,
@@ -2054,7 +2054,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::IndirectY,
         operation: |cpu| {
             let address = cpu.get_indirect_y_address(false); // No additionnal cycles on STA
-            let extra_cycles = cpu.memory.borrow_mut().write_rom(address, cpu.accumulator);
+            let extra_cycles = cpu.bus.write_rom(address, cpu.accumulator);
             InstructionResult {
                 step: 2,
                 remaining_cycles: 6 + extra_cycles,
@@ -2079,7 +2079,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::ZeroPageX,
         operation: |cpu| {
             let address = cpu.get_zero_page_x_address();
-            cpu.memory.borrow_mut().write_rom(address, cpu.y_register);
+            cpu.bus.write_rom(address, cpu.y_register);
             InstructionResult {
                 step: 2,
                 remaining_cycles: 4,
@@ -2092,7 +2092,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::ZeroPageX,
         operation: |cpu| {
             let address = cpu.get_zero_page_x_address();
-            let extra_cycles = cpu.memory.borrow_mut().write_rom(address, cpu.accumulator);
+            let extra_cycles = cpu.bus.write_rom(address, cpu.accumulator);
             InstructionResult {
                 step: 2,
                 remaining_cycles: 4 + extra_cycles,
@@ -2105,7 +2105,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::ZeroPageY,
         operation: |cpu| {
             let address = cpu.get_zero_page_y_address();
-            cpu.memory.borrow_mut().write_rom(address, cpu.x_register);
+            cpu.bus.write_rom(address, cpu.x_register);
             InstructionResult {
                 step: 2,
                 remaining_cycles: 4,
@@ -2144,7 +2144,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::AbsoluteY,
         operation: |cpu| {
             let address = cpu.get_absolute_y_address(false); // No additionnal cycles on STA
-            let extra_cycles = cpu.memory.borrow_mut().write_rom(address, cpu.accumulator);
+            let extra_cycles = cpu.bus.write_rom(address, cpu.accumulator);
             InstructionResult {
                 step: 3,
                 remaining_cycles: 5 + extra_cycles,
@@ -2181,7 +2181,7 @@ pub const INSTRUCTION_TABLE: [Instruction; 0x100] = [
         mode: InstructionMode::AbsoluteX,
         operation: |cpu| {
             let address = cpu.get_absolute_x_address(false); // No additionnal cycles on STA
-            let extra_cycles = cpu.memory.borrow_mut().write_rom(address, cpu.accumulator);
+            let extra_cycles = cpu.bus.write_rom(address, cpu.accumulator);
             InstructionResult {
                 step: 3,
                 remaining_cycles: 5 + extra_cycles,

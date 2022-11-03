@@ -6,35 +6,34 @@ use crate::ppu::Ppu;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub struct Memory {
+use super::interrupt::Interrupt;
+
+pub struct Bus {
     internal_ram: [u8; 0x800],
-    apu: Rc<RefCell<Apu>>,
-    ppu: Rc<RefCell<Ppu>>,
-    controller_1: Rc<RefCell<Controller>>,
-    controller_2: Rc<RefCell<Controller>>,
+    pub apu: Apu,
+    pub ppu: Ppu,
+    pub controller_1: Controller,
+    pub controller_2: Controller,
     controller_1_status: u8,
     controller_2_status: u8,
     cartridge: Rc<RefCell<Cartridge>>,
+    pub interrupt: Rc<RefCell<Interrupt>>,
 }
 
-impl Memory {
+impl Bus {
     /// Instantiate new Memory component
-    pub fn new(
-        _cartridge: Rc<RefCell<Cartridge>>,
-        _ppu: Rc<RefCell<Ppu>>,
-        _apu: Rc<RefCell<Apu>>,
-        _controller_1: Rc<RefCell<Controller>>,
-        _controller_2: Rc<RefCell<Controller>>,
-    ) -> Memory {
-        Memory {
+    pub fn new(_sdl_context: Rc<RefCell<sdl2::Sdl>>, _cartridge: Rc<RefCell<Cartridge>>) -> Bus {
+        let _interrupt = Rc::new(RefCell::new(Interrupt::new()));
+        Bus {
             internal_ram: [0; 0x800], // 2kB or internal RAM
-            apu: _apu,
-            ppu: _ppu,
+            apu: Apu::new(_sdl_context.clone(), _interrupt.clone()),
+            ppu: Ppu::new(_sdl_context.clone(), _cartridge.clone(), _interrupt.clone()),
             cartridge: _cartridge,
-            controller_1: _controller_1,
-            controller_2: _controller_2,
+            controller_1: Controller::new(),
+            controller_2: Controller::new(),
             controller_1_status: 0,
             controller_2_status: 0,
+            interrupt: _interrupt,
         }
     }
 
@@ -87,9 +86,9 @@ impl Memory {
             0x2000..=0x3fff => {
                 let local_address = 0x2000 + (address % 8);
                 match local_address {
-                    0x2002 => self.ppu.borrow_mut().read_0x2002(),
-                    0x2004 => self.ppu.borrow_mut().read_0x2004(),
-                    0x2007 => self.ppu.borrow_mut().read_0x2007(),
+                    0x2002 => self.ppu.read_0x2002(),
+                    0x2004 => self.ppu.read_0x2004(),
+                    0x2007 => self.ppu.read_0x2007(),
                     _ => panic!("Write only address : {}", address),
                 }
             }
@@ -108,7 +107,7 @@ impl Memory {
                         value
                     }
                     // Read APU
-                    _ => self.apu.borrow_mut().read_registers(address),
+                    _ => self.apu.read_registers(address),
                 }
             }
             0x4018..=0x401f => 0, // Normally disabled
@@ -132,14 +131,14 @@ impl Memory {
             0x2000..=0x3fff => {
                 let local_address = 0x2000 + (address % 8);
                 match local_address {
-                    0x2000 => self.ppu.borrow_mut().write_0x2000(value),
-                    0x2001 => self.ppu.borrow_mut().write_0x2001(value),
+                    0x2000 => self.ppu.write_0x2000(value),
+                    0x2001 => self.ppu.write_0x2001(value),
                     0x2002 => panic!("Read only address {}", address), // Read-only
-                    0x2003 => self.ppu.borrow_mut().write_0x2003(value),
-                    0x2004 => self.ppu.borrow_mut().write_0x2004(value),
-                    0x2005 => self.ppu.borrow_mut().write_0x2005(value),
-                    0x2006 => self.ppu.borrow_mut().write_0x2006(value),
-                    0x2007 => self.ppu.borrow_mut().write_0x2007(value),
+                    0x2003 => self.ppu.write_0x2003(value),
+                    0x2004 => self.ppu.write_0x2004(value),
+                    0x2005 => self.ppu.write_0x2005(value),
+                    0x2006 => self.ppu.write_0x2006(value),
+                    0x2007 => self.ppu.write_0x2007(value),
                     _ => (), // won"t happen based on local_address computation
                 }
             }
@@ -149,20 +148,18 @@ impl Memory {
                     0x4014 => {
                         let start = (value as usize) << 8;
                         let end = start + 0x100 - 1;
-                        self.ppu
-                            .borrow_mut()
-                            .write_oamdma(&self.internal_ram[start..=end]);
+                        self.ppu.write_oamdma(&self.internal_ram[start..=end]);
                         return 514;
                     }
                     // Save inputs 1 and 2
                     0x4016 => {
                         if value & 1 == 0 {
-                            self.controller_1_status = self.controller_1.borrow_mut().get_status();
-                            self.controller_2_status = self.controller_2.borrow_mut().get_status();
+                            self.controller_1_status = self.controller_1.get_status();
+                            self.controller_2_status = self.controller_2.get_status();
                         }
                     }
                     // Read APU
-                    _ => self.apu.borrow_mut().write_registers(address, value),
+                    _ => self.apu.write_registers(address, value),
                 }
             }
             0x4018..=0x401f => (), // Normally disabled
