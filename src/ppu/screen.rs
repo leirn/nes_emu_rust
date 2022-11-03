@@ -7,7 +7,6 @@ use sdl2::video::Window;
 use std::cell::RefCell;
 use std::rc::Rc;
 pub struct Screen<'a> {
-    scale: u32,
     canvas: Canvas<Window>,
     surface: Surface<'a>,
     g_scaling_mode: ScalingMode,
@@ -58,7 +57,6 @@ impl Screen<'_> {
             .unwrap();
 
         Screen {
-            scale: scale,
             canvas: _canvas,
             surface: _surface,
             g_scaling_mode: ScalingMode::ScalingModeAspectFit,
@@ -77,51 +75,9 @@ impl Screen<'_> {
 
     /// Start the Screen component
     pub fn start(&mut self) {
-        self.canvas
-            .set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
-        // fills the canvas with the color we set in `set_draw_color`.
         self.canvas.clear();
-
-        // change the color of our drawing with a gold-color ...
-        self.canvas.set_draw_color(PALETTE[36]);
-        // A draw a rectangle which almost fills our window with it !
-        if let Err(e) = self.canvas.fill_rect(sdl2::rect::Rect::new(
-            10,
-            10,
-            256 * self.scale - 20,
-            240 * self.scale - 20,
-        )) {
-            println!("{:?}", e);
-        }
-
-        // However the canvas has not been updated to the window yet,
-        // everything has been processed to an internal buffer,
-        // but if we want our buffer to be displayed on the window,
-        // we need to call `present`. We need to call this everytime
-        // we want to render a new frame on the window.
         self.present();
-        // present does not "clear" the buffer, that means that
-        // you have to clear it yourself before rendering again,
-        // otherwise leftovers of what you've renderer before might
-        // show up on the window !
-        //
-        // A good rule of thumb is to `clear()`, draw every texture
-        // needed, and then `present()`; repeat this every new frame.
     }
-
-    /// Update a scaled pixel on the buffered canvas
-    /*pub fn update_pixel(&mut self, x: u8, y: u8, color_index: u8) {
-        let color_index = color_index % 64;
-        self.canvas.set_draw_color(PALETTE[color_index as usize]);
-        if let Err(e) = self.canvas.fill_rect(sdl2::rect::Rect::new(
-            self.scale as i32 * x as i32,
-            self.scale as i32 * y as i32,
-            self.scale,
-            self.scale,
-        )) {
-            println!("{:?}", e);
-        }
-    }*/
 
     pub fn update_pixel(&mut self, x: u8, y: u8, color: u8) {
         let address = x as usize + y as usize * SCREEN_WIDTH as usize;
