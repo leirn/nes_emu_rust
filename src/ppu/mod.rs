@@ -13,8 +13,8 @@ pub struct Status {
     pub line: u16,
 }
 
-pub struct Ppu {
-    screen: screen::Screen,
+pub struct Ppu<'a> {
+    screen: screen::Screen<'a>,
     interrupt_bus: Rc<RefCell<Interrupt>>,
     cartridge: Rc<RefCell<Cartridge>>,
 
@@ -61,13 +61,13 @@ pub struct Ppu {
     sprite_x_coordinate_table_register: VecDeque<u8>,
 }
 
-impl Ppu {
+impl Ppu<'_> {
     /// Instantiate the PPU
     pub fn new(
         _sdl_context: Rc<RefCell<sdl2::Sdl>>,
         _cartridge: Rc<RefCell<Cartridge>>,
         _interrupt_bus: Rc<RefCell<Interrupt>>,
-    ) -> Ppu {
+    ) -> Ppu<'static> {
         Ppu {
             screen: screen::Screen::new(_sdl_context),
             cartridge: _cartridge,
@@ -640,9 +640,7 @@ impl Ppu {
             line: self.line,
         }
     }
-}
 
-impl Ppu {
     // Return a color_index which is a palette index
     pub fn compute_next_pixel(&mut self) -> u8 {
         let (bg_color_code, bg_color_palette) = self.compute_bg_pixel();

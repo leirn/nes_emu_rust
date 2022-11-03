@@ -17,13 +17,13 @@ use crate::cpu::instructions::INSTRUCTION_TABLE;
 use crate::cpu::opcodes::OPCODES;
 use crate::cpu::Cpu;
 
-pub struct NesEmulator {
+pub struct NesEmulator<'a> {
     pause: bool,
     is_test_mode: bool,
     pub sdl_context: Rc<RefCell<sdl2::Sdl>>,
     clock: clock::Clock,
     _cartridge: Rc<RefCell<Cartridge>>,
-    cpu: Cpu,
+    cpu: Cpu<'a>,
     lines: Vec<String>,
     line_index: usize,
     parity: bool,
@@ -31,9 +31,9 @@ pub struct NesEmulator {
     log_file: Option<std::io::BufWriter<std::fs::File>>,
 }
 
-impl NesEmulator {
+impl NesEmulator<'_> {
     /// Instantiate the Emulator
-    pub fn new(rom_file: String) -> NesEmulator {
+    pub fn new(rom_file: String) -> NesEmulator<'static> {
         let _sdl_context = Rc::new(RefCell::new(sdl2::init().unwrap()));
         info!("SDL Context initialized");
 

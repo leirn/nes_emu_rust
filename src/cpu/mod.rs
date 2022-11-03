@@ -22,9 +22,9 @@ pub struct Status {
     pub total_cycles: u32,
 }
 
-pub struct Cpu {
+pub struct Cpu<'a> {
     // Access to BUS
-    pub bus: Bus,
+    pub bus: Bus<'a>,
 
     // Registers
     accumulator: u8,
@@ -49,8 +49,11 @@ pub struct Cpu {
     compteur: u32,
 }
 
-impl Cpu {
-    pub fn new(_sdl_context: Rc<RefCell<sdl2::Sdl>>, _cartridge: Rc<RefCell<Cartridge>>) -> Cpu {
+impl Cpu<'_> {
+    pub fn new(
+        _sdl_context: Rc<RefCell<sdl2::Sdl>>,
+        _cartridge: Rc<RefCell<Cartridge>>,
+    ) -> Cpu<'static> {
         Cpu {
             bus: Bus::new(_sdl_context, _cartridge),
             accumulator: 0,
