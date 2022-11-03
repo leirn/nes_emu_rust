@@ -12,15 +12,10 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::rc::Rc;
 
-use crate::apu::Apu;
-use crate::bus::controller::Controller;
-use crate::bus::interrupt::Interrupt;
-use crate::bus::memory::Memory;
 use crate::cartridge::Cartridge;
 use crate::cpu::instructions::INSTRUCTION_TABLE;
 use crate::cpu::opcodes::OPCODES;
 use crate::cpu::Cpu;
-use crate::ppu::Ppu;
 
 pub struct NesEmulator {
     pause: bool,
@@ -28,13 +23,7 @@ pub struct NesEmulator {
     pub sdl_context: Rc<RefCell<sdl2::Sdl>>,
     clock: clock::Clock,
     _cartridge: Rc<RefCell<Cartridge>>,
-    memory: Rc<RefCell<Memory>>,
-    apu: Rc<RefCell<Apu>>,
-    ppu: Rc<RefCell<Ppu>>,
-    cpu: Rc<RefCell<Cpu>>,
-    interrupt_bus: Rc<RefCell<Interrupt>>,
-    controller_1: Rc<RefCell<Controller>>,
-    _controller_2: Rc<RefCell<Controller>>,
+    cpu: Cpu,
     lines: Vec<String>,
     line_index: usize,
     parity: bool,
@@ -48,27 +37,8 @@ impl NesEmulator {
         let _sdl_context = Rc::new(RefCell::new(sdl2::init().unwrap()));
         info!("SDL Context initialized");
 
-        let _interrupt_bus = Rc::new(RefCell::new(Interrupt::new()));
-        let _controller_1 = Rc::new(RefCell::new(Controller::new()));
-        let _controller_2 = Rc::new(RefCell::new(Controller::new()));
         let _cartridge = Rc::new(RefCell::new(Cartridge::new(rom_file)));
-        let _apu = Rc::new(RefCell::new(Apu::new(
-            Rc::clone(&_interrupt_bus),
-            _sdl_context.clone(),
-        )));
-        let _ppu = Rc::new(RefCell::new(Ppu::new(
-            Rc::clone(&_cartridge),
-            _sdl_context.clone(),
-            Rc::clone(&_interrupt_bus),
-        )));
-        let _memory = Rc::new(RefCell::new(Memory::new(
-            Rc::clone(&_cartridge),
-            Rc::clone(&_ppu),
-            Rc::clone(&_apu),
-            Rc::clone(&_controller_1),
-            Rc::clone(&_controller_2),
-        )));
-        let _cpu = Rc::new(RefCell::new(Cpu::new(Rc::clone(&_memory))));
+        let _cpu = Cpu::new(_sdl_context.clone(), _cartridge.clone());
 
         NesEmulator {
             pause: false,
@@ -76,13 +46,7 @@ impl NesEmulator {
             sdl_context: _sdl_context,
             clock: clock::Clock::new(60), // 60 fps target
             _cartridge: _cartridge,
-            memory: _memory,
-            apu: _apu,
-            ppu: _ppu,
             cpu: _cpu,
-            controller_1: _controller_1,
-            _controller_2: _controller_2,
-            interrupt_bus: _interrupt_bus,
             lines: vec![],
             line_index: 0,
             parity: false,
@@ -100,45 +64,45 @@ impl NesEmulator {
                     .expect("Cannot create message"),
             ));
         }
-        self.apu.borrow_mut().start();
-        self.ppu.borrow_mut().start();
-        self.cpu.borrow_mut().start(entry_point);
-        self.ppu.borrow_mut().next();
-        self.ppu.borrow_mut().next();
-        self.ppu.borrow_mut().next();
+        self.cpu.bus.apu.start();
+        self.cpu.bus.ppu.start();
+        self.cpu.start(entry_point);
+        self.cpu.bus.ppu.next();
+        self.cpu.bus.ppu.next();
+        self.cpu.bus.ppu.next();
 
         let mut continuer: bool = true;
 
         while continuer {
             if !self.pause {
-                if self.interrupt_bus.borrow_mut().check_and_clear_nmi() {
-                    self.cpu.borrow_mut().nmi();
+                if self.cpu.bus.interrupt.borrow_mut().check_and_clear_nmi() {
+                    self.cpu.nmi();
                 }
-                if self.interrupt_bus.borrow_mut().check_and_clear_irq()
-                    && self.cpu.borrow_mut().get_interrupt_flag()
+                if self.cpu.bus.interrupt.borrow_mut().check_and_clear_irq()
+                    && self.cpu.get_interrupt_flag()
                 {
-                    self.cpu.borrow_mut().irq();
+                    self.cpu.irq();
                 }
                 if self.parity {
-                    self.apu.borrow_mut().next();
+                    self.cpu.bus.apu.next();
                 }
-                self.cpu.borrow_mut().next();
-                self.ppu.borrow_mut().next();
-                self.ppu.borrow_mut().next();
-                self.ppu.borrow_mut().next();
+                self.cpu.next();
+                self.cpu.bus.ppu.next();
+                self.cpu.bus.ppu.next();
+                self.cpu.bus.ppu.next();
 
                 // Odd or even cycle. Needed to trigger the apu one every two cpu cycles.
                 self.parity = !self.parity;
 
-                if self.is_test_mode && self.cpu.borrow_mut().get_remaining_cycles() == 0 {
-                    let cpu_status = self.cpu.borrow_mut().get_status();
-                    let ppu_status = self.ppu.borrow_mut().get_status();
+                if self.is_test_mode && self.cpu.get_remaining_cycles() == 0 {
+                    let cpu_status = self.cpu.get_status();
+                    let ppu_status = self.cpu.bus.ppu.get_status();
                     self.check_test(cpu_status, ppu_status);
                 }
 
                 if self.log_activated
                     && self.log_file.is_some()
-                    && self.cpu.borrow_mut().get_remaining_cycles() == 0
+                    && self.cpu.get_remaining_cycles() == 0
                 {
                     let log = self.get_status_log();
                     //self.log("{}", log);
@@ -149,16 +113,18 @@ impl NesEmulator {
                         .unwrap();
                     self.log_file.as_mut().unwrap().write_all(b"\n").unwrap();
 
-                    //if self.cpu.borrow_mut().get_total_cycles() > 87529 {
+                    //if self.cpu.get_total_cycles() > 87529 {
                     if self.clock.get_clock_count() > 10 {
-                        self.ppu.borrow_mut().print_primary_oam();
-                        self.ppu.borrow_mut().print_secondary_oam();
+                        self.cpu.bus.ppu.print_primary_oam();
+                        self.cpu.bus.ppu.print_secondary_oam();
                         std::process::exit(0);
                     }
                 }
 
                 if self
-                    .interrupt_bus
+                    .cpu
+                    .bus
+                    .interrupt
                     .borrow_mut()
                     .check_and_clear_frame_updated()
                 {
@@ -186,108 +152,101 @@ impl NesEmulator {
                     Event::KeyDown {
                         keycode: Some(Keycode::Up),
                         ..
-                    } => self.controller_1.borrow_mut().set_up(),
+                    } => self.cpu.bus.controller_1.set_up(),
                     Event::KeyUp {
                         keycode: Some(Keycode::Up),
                         ..
-                    } => self.controller_1.borrow_mut().clear_up(),
+                    } => self.cpu.bus.controller_1.clear_up(),
                     Event::KeyDown {
                         keycode: Some(Keycode::Down),
                         ..
-                    } => self.controller_1.borrow_mut().set_down(),
+                    } => self.cpu.bus.controller_1.set_down(),
                     Event::KeyUp {
                         keycode: Some(Keycode::Down),
                         ..
-                    } => self.controller_1.borrow_mut().clear_down(),
+                    } => self.cpu.bus.controller_1.clear_down(),
                     Event::KeyDown {
                         keycode: Some(Keycode::Left),
                         ..
-                    } => self.controller_1.borrow_mut().set_left(),
+                    } => self.cpu.bus.controller_1.set_left(),
                     Event::KeyUp {
                         keycode: Some(Keycode::Left),
                         ..
-                    } => self.controller_1.borrow_mut().clear_left(),
+                    } => self.cpu.bus.controller_1.clear_left(),
                     Event::KeyDown {
                         keycode: Some(Keycode::Right),
                         ..
-                    } => self.controller_1.borrow_mut().set_right(),
+                    } => self.cpu.bus.controller_1.set_right(),
                     Event::KeyUp {
                         keycode: Some(Keycode::Right),
                         ..
-                    } => self.controller_1.borrow_mut().clear_right(),
+                    } => self.cpu.bus.controller_1.clear_right(),
                     Event::KeyDown {
                         keycode: Some(Keycode::Escape),
                         ..
-                    } => self.controller_1.borrow_mut().set_select(),
+                    } => self.cpu.bus.controller_1.set_select(),
                     Event::KeyUp {
                         keycode: Some(Keycode::Escape),
                         ..
-                    } => self.controller_1.borrow_mut().clear_select(),
+                    } => self.cpu.bus.controller_1.clear_select(),
                     Event::KeyDown {
                         keycode: Some(Keycode::Return),
                         ..
-                    } => self.controller_1.borrow_mut().set_start(),
+                    } => self.cpu.bus.controller_1.set_start(),
                     Event::KeyUp {
                         keycode: Some(Keycode::Return),
                         ..
-                    } => self.controller_1.borrow_mut().clear_start(),
+                    } => self.cpu.bus.controller_1.clear_start(),
                     Event::KeyDown {
                         keycode: Some(Keycode::Space),
                         ..
-                    } => self.controller_1.borrow_mut().set_a(),
+                    } => self.cpu.bus.controller_1.set_a(),
                     Event::KeyUp {
                         keycode: Some(Keycode::Space),
                         ..
-                    } => self.controller_1.borrow_mut().clear_a(),
+                    } => self.cpu.bus.controller_1.clear_a(),
                     Event::KeyDown {
                         keycode: Some(Keycode::LCtrl),
                         ..
-                    } => self.controller_1.borrow_mut().set_b(),
+                    } => self.cpu.bus.controller_1.set_b(),
                     Event::KeyUp {
                         keycode: Some(Keycode::LCtrl),
                         ..
-                    } => self.controller_1.borrow_mut().clear_b(),
+                    } => self.cpu.bus.controller_1.clear_b(),
                     _ => (),
                 }
             }
         }
     }
 
-    fn get_status_log(&self) -> String {
-        let cpu_status = self.cpu.borrow_mut().get_status();
-        let ppu_status = self.ppu.borrow_mut().get_status();
-        let ppu_full_status = self.ppu.borrow_mut().get_ppustatus_as_string();
-        let opcode = self
-            .memory
-            .borrow_mut()
-            .read_rom(cpu_status.program_counter);
+    fn get_status_log(&mut self) -> String {
+        let cpu_status = self.cpu.get_status();
+        let ppu_status = self.cpu.bus.ppu.get_status();
+        let ppu_full_status = self.cpu.bus.ppu.get_ppustatus_as_string();
+        let opcode = self.cpu.bus.read_rom(cpu_status.program_counter);
         let mut opcode_arg_1 = "  ".to_string();
         let mut opcode_arg_2 = "  ".to_string();
         if OPCODES[&opcode].len > 1 {
             opcode_arg_1 = format!(
                 "{:02x}",
-                self.memory
-                    .borrow_mut()
-                    .read_rom(cpu_status.program_counter + 1)
+                self.cpu.bus.read_rom(cpu_status.program_counter + 1)
             );
         }
         if OPCODES[&opcode].len > 2 {
             opcode_arg_2 = format!(
                 "{:02x}",
-                self.memory
-                    .borrow_mut()
-                    .read_rom(cpu_status.program_counter + 2)
+                self.cpu.bus.read_rom(cpu_status.program_counter + 2)
             );
         }
 
-        let zero_page_xor = self.memory.borrow().xor_zero_page();
+        let zero_page_xor = self.cpu.bus.xor_zero_page();
 
         format!("{:x}  {:02x} {} {}  {:30}  A:{:02x} X:{:02x} Y:{:02x} P:{:02x} SP:{:02x} PPU:{},{} CYC:{}, ZeroPage:{:02x},{}",
             cpu_status.program_counter,
             opcode,
             opcode_arg_1,
             opcode_arg_2,
-            INSTRUCTION_TABLE[opcode as usize].get_syntax(&mut self.cpu.borrow_mut()),
+            INSTRUCTION_TABLE[opcode as usize].get_syntax(&mut self.cpu),
             cpu_status.accumulator,
             cpu_status.x_register,
             cpu_status.y_register,
@@ -325,26 +284,19 @@ impl NesEmulator {
         let current_line = self.lines[self.line_index].clone();
         self.line_index += 1;
 
-        let opcode = self
-            .memory
-            .borrow_mut()
-            .read_rom(cpu_status.program_counter);
+        let opcode = self.cpu.bus.read_rom(cpu_status.program_counter);
         let mut opcode_arg_1 = "  ".to_string();
         let mut opcode_arg_2 = "  ".to_string();
         if OPCODES[&opcode].len > 1 {
             opcode_arg_1 = format!(
                 "{:02x}",
-                self.memory
-                    .borrow_mut()
-                    .read_rom(cpu_status.program_counter + 1)
+                self.cpu.bus.read_rom(cpu_status.program_counter + 1)
             );
         }
         if OPCODES[&opcode].len > 2 {
             opcode_arg_2 = format!(
                 "{:02x}",
-                self.memory
-                    .borrow_mut()
-                    .read_rom(cpu_status.program_counter + 2)
+                self.cpu.bus.read_rom(cpu_status.program_counter + 2)
             );
         }
 
@@ -355,7 +307,7 @@ impl NesEmulator {
             opcode,
             opcode_arg_1,
             opcode_arg_2,
-            INSTRUCTION_TABLE[opcode as usize].get_syntax(&mut self.cpu.borrow_mut()),
+            INSTRUCTION_TABLE[opcode as usize].get_syntax(&mut self.cpu),
             cpu_status.accumulator,
             cpu_status.x_register,
             cpu_status.y_register,

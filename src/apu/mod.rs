@@ -26,8 +26,8 @@ pub struct Apu {
 impl Apu {
     /// Instantiate APU component
     pub fn new(
-        _interrupt_bus: Rc<RefCell<Interrupt>>,
         _sdl_context: Rc<RefCell<sdl2::Sdl>>,
+        _interrupt_bus: Rc<RefCell<Interrupt>>,
     ) -> Apu {
         let mut apu = Apu {
             mixer: Mixer {

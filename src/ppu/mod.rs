@@ -64,8 +64,8 @@ pub struct Ppu {
 impl Ppu {
     /// Instantiate the PPU
     pub fn new(
-        _cartridge: Rc<RefCell<Cartridge>>,
         _sdl_context: Rc<RefCell<sdl2::Sdl>>,
+        _cartridge: Rc<RefCell<Cartridge>>,
         _interrupt_bus: Rc<RefCell<Interrupt>>,
     ) -> Ppu {
         Ppu {
